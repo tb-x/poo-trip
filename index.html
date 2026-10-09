@@ -1,0 +1,1798 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Poo's Big Trip</title>
+<meta name="description" content="Steer a cute little poo through the pipes all the way to its holiday.">
+<meta name="theme-color" content="#3a2414">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%92%A9%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+<style>
+/* Layout: one full-screen pixel-art canvas (bathroom, then pipes scrolling up, then the holiday spot). On top: a
+   postcard menu card, a small HUD (home, progress track, sound) and two big arrow pads in the bottom corners. */
+:root {
+  --ink: #3a2414;
+  --ink-soft: #7a5236;
+  --paper: #fff8ec;
+  --card: #ffffff;
+  --gold: #ffd166;
+  --green: #4caf50;
+  --night: #1a0f08;
+  --font-pixel: 'Press Start 2P', 'Courier New', monospace;
+  --font-body: Verdana, Tahoma, 'Segoe UI', system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--night);
+  color: var(--ink);
+  font-family: var(--font-body);
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+#game {
+  position: fixed;
+  left: 0;
+  top: 0;
+  image-rendering: pixelated;
+  touch-action: none;
+}
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+[hidden] { display: none !important; }
+
+/* ---- menu and end cards ---- */
+.panel {
+  position: fixed;
+  left: 50%;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  transform: translateX(-50%);
+  width: min(560px, calc(100% - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+  max-height: calc(100% - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  overflow: auto;
+  padding: 14px 14px 16px;
+  background: var(--paper);
+  border: 4px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: 0 6px 0 var(--ink);
+  text-align: center;
+}
+h1, h2 {
+  margin: 4px 44px 10px;
+  font: 400 clamp(15px, 4.4vw, 24px)/1.4 var(--font-pixel);
+  color: #7a3f12;
+}
+.where { margin: 0 0 12px; font-weight: 700; font-size: 18px; }
+#cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 10px;
+}
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  background: var(--card);
+  border: 3px solid var(--ink);
+  border-radius: 6px;
+  box-shadow: 0 4px 0 var(--ink);
+  font-weight: 700;
+  font-size: 17px;
+}
+.card:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+.card canvas, .card .mystery {
+  display: block;
+  width: 100%;
+  aspect-ratio: 120 / 76;
+  image-rendering: pixelated;
+  border-bottom: 3px solid var(--ink);
+}
+.card .mystery {
+  display: grid;
+  place-items: center;
+  background: repeating-conic-gradient(#ffd166 0 25%, #ffb703 0 50%) 0 0 / 16px 16px;
+  font: 400 34px var(--font-pixel);
+  color: var(--ink);
+  text-shadow: 3px 3px 0 #fff;
+}
+.card .label { padding: 6px 4px 7px; }
+.card .stamp {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  background: var(--green);
+  color: #fff;
+  font-size: 15px;
+  transform: rotate(-12deg);
+}
+#done h2 { font-size: clamp(18px, 5.4vw, 30px); margin: 4px 0 14px; }
+.big {
+  padding: 14px 26px;
+  border: 4px solid var(--ink);
+  border-radius: 8px;
+  background: var(--gold);
+  box-shadow: 0 5px 0 var(--ink);
+  font-weight: 700;
+  font-size: 22px;
+}
+.big:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+
+/* ---- HUD ---- */
+.round {
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 3px solid var(--ink);
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: 0 4px 0 var(--ink);
+  font-size: 25px;
+  line-height: 1;
+}
+.round:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+#menu .sound {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 44px;
+  height: 44px;
+  font-size: 21px;
+}
+#hud {
+  position: fixed;
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  left: calc(10px + env(safe-area-inset-left, 0px));
+  right: calc(10px + env(safe-area-inset-right, 0px));
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  pointer-events: none;
+}
+#hud > * { pointer-events: auto; }
+#hud .sound { margin-left: 28px; }
+#track {
+  position: relative;
+  flex: 1;
+  max-width: 420px;
+  height: 18px;
+  margin: 0 auto 0 0;
+  border: 3px solid var(--ink);
+  border-radius: 9px;
+  background: #6b4a33;
+}
+#trackFill { height: 100%; width: 0; border-radius: 6px; background: var(--gold); }
+#trackPoo {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 40px;
+  height: 40px;
+  transform: translate(-50%, -54%);
+  image-rendering: pixelated;
+}
+#trackGoal {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translate(60%, -50%);
+  font-size: 30px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 0 var(--ink));
+}
+.pad {
+  position: fixed;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  width: 86px;
+  height: 86px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 4px solid var(--ink);
+  border-radius: 10px;
+  background: rgba(255, 248, 236, 0.86);
+  box-shadow: 0 6px 0 var(--ink);
+}
+.pad img { width: 50px; height: 45px; image-rendering: pixelated; }
+#leftBtn { left: calc(16px + env(safe-area-inset-left, 0px)); }
+#rightBtn { right: calc(16px + env(safe-area-inset-right, 0px)); }
+.pad.on, .pad:active { transform: translateY(5px); box-shadow: 0 1px 0 var(--ink); background: var(--gold); }
+.pad.pulse { animation: pulse 0.5s ease-in-out infinite alternate; }
+@keyframes pulse { to { background: var(--gold); transform: scale(1.08); } }
+
+/* Wide, short screens (a tablet or phone held sideways): all five postcards in one row. */
+@media (min-aspect-ratio: 4/3) {
+  .panel { width: min(780px, calc(100% - 200px)); }
+  #cards { grid-template-columns: repeat(5, 1fr); }
+}
+@media (max-height: 430px) {
+  .panel { padding: 8px 10px 10px; }
+  h1 { margin: 2px 0 6px; }
+  .where { margin-bottom: 8px; font-size: 15px; }
+  .card { font-size: 15px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pad.pulse { animation: none; background: var(--gold); }
+}
+
+/* ---- home button (back to all games), square and pixel-bordered like the HUD buttons ---- */
+#home {
+  position: fixed;
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  left: calc(10px + env(safe-area-inset-left, 0px));
+  z-index: 50;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 3px solid var(--ink);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: 0 4px 0 var(--ink);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  text-decoration: none;
+}
+#home svg { width: 24px; height: 24px; }
+#home:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+/* Keep the HUD and the cards clear of it. */
+#hud { left: calc(68px + env(safe-area-inset-left, 0px)); }
+@media (max-width: 687px) and (max-aspect-ratio: 4/3) {   /* upright phone: the card fills the width, so it starts below the button */
+  .panel {
+    top: calc(64px + env(safe-area-inset-top, 0px));
+    max-height: calc(100% - 76px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  }
+}
+@media (min-aspect-ratio: 4/3) {   /* sideways: also leave room for a notch, which pushes the button in */
+  .panel { width: min(780px, calc(100% - 200px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))); }
+}
+</style>
+</head>
+<body>
+<a id="home" href="../index.html" aria-label="All games" title="All games"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 11 12 4l8.5 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 9.8V20h12V9.8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/><path d="M10 20v-5.5h4V20" fill="currentColor"/></svg></a>
+<canvas id="game" aria-label="A little poo rides through the pipes"></canvas>
+
+<section id="menu" class="panel">
+  <button class="round sound" type="button" aria-label="Sound on or off">🔊</button>
+  <h1>Poo's Big Trip</h1>
+  <p class="where">Where to? 🧳</p>
+  <div id="cards"></div>
+</section>
+
+<section id="done" class="panel" hidden>
+  <h2 id="doneTitle">Beach!</h2>
+  <button id="againBtn" class="big" type="button">🚽 Again!</button>
+</section>
+
+<div id="hud" hidden>
+  <button id="homeBtn" class="round" type="button" aria-label="Back to the postcards">🗺️</button>
+  <div id="track" aria-hidden="true">
+    <div id="trackFill"></div>
+    <img id="trackPoo" alt="">
+    <span id="trackGoal"></span>
+  </div>
+  <button class="round sound" type="button" aria-label="Sound on or off">🔊</button>
+</div>
+<button id="leftBtn" class="pad" type="button" aria-label="Turn left" hidden></button>
+<button id="rightBtn" class="pad" type="button" aria-label="Turn right" hidden></button>
+
+<script>
+'use strict';
+
+/* ======== tuning knobs ======== */
+const TRIP_ROWS = 12;              // rows of junctions on the way to each holiday spot (even, so the last row leads to the middle)
+const DEAD_END_CHANCE = 0.5;       // chance that one way out of a turn ends at a no-entry sign
+const MAX_BRANCHES = 3;            // most pipes running side by side
+const BASE_SPEED = 93;             // game pixels per second
+const BOOST_SPEED = 225;           // speed while riding a water rush
+const BOOST_TIME = 2.4;            // seconds the water rush lasts
+const CLOG_SPEED = 24;             // speed while pushing a toilet paper clog
+const CLOG_TIME = 1.6;             // seconds until the clog pops
+const BONK_TIME = 1.1;             // seconds of dizzy stars after a dead end
+const WATER_CHANCE = 0.22;         // chance of a water rush on a pipe between two rows
+const TP_CHANCE = 0.16;            // chance of a toilet paper clog on a pipe between two rows
+
+/* ======== layout ======== */
+const LANES = 5, LANE_GAP = 50;    // pipe lanes across the field
+const FIELD_W = 252;               // width of the pipe area, in game pixels
+const MIN_VIEW_H = 315;            // the screen always shows at least this many game pixels vertically
+const LOOK = 0.3;                  // the poo rides at this fraction of the screen height, so turns show up early
+const laneX = i => 26 + i * LANE_GAP;
+const CX = laneX(2);               // the middle lane, under the toilet
+const PIPE_R = 19, PIPE_IN = 14;   // pipe half-width outside and inside
+const ROW_MIN = 140, ROW_MAX = 190, FIRST_DROP = 170, DEAD_LEN = 60, EXIT_LEN = 225;
+const POO_SIZE = 32, POO_AX = 16, POO_AY = 19, POO_START_Y = -40;
+const FLUSH_TIME = 1.3, IRIS_TIME = 0.7;
+const FLOOR_H = 20;                // bathroom floor and concrete, between the toilet and the dirt
+const ASSET_V = 1;                 // bump after changing anything in assets/
+
+const C = {
+  eye: '#1b1010', white: '#ffffff', cheek: '#ff8fa8', mouth: '#5a1a1a', tongue: '#ff6f8a',
+  pipeInk: '#1d2b2a', pipe: '#3f9c86', pipeLight: '#86dcc2', pipeDark: '#2a6f60',
+  inside: '#26383d', water: '#3aa0ff', waterLight: '#b4e2ff',
+  porc: '#f4f8ff', porcShade: '#c9d4e6', porcInk: '#3a4660', bowlWater: '#8fd3ff', bowlDeep: '#5fb7ea',
+  wall: '#bfe7f3', wallLow: '#e6f6fb', wallLine: '#9fd2e3', wallBand: '#5fb8d3',
+  floorA: '#f2e3c6', floorB: '#d8bf93', concrete: '#8f8a84', yellow: '#ffd43b', night: '#1a0f08',
+};
+
+/* ======== storage ======== */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('pootrip.' + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('pootrip.' + k, JSON.stringify(v)); } catch {} },
+};
+
+/* ======== sound ======== */
+const Sound = (() => {
+  let ac = null, out = null, noiseBuf = null;
+  let muted = store.get('muted', false);
+  const touch = navigator.maxTouchPoints > 0;
+
+  function unlock() {
+    if (!ac) {
+      try {
+        ac = new (window.AudioContext || window.webkitAudioContext)();
+        out = ac.createGain();
+        out.gain.value = muted ? 0 : 0.6;
+        out.connect(ac.destination);
+        noiseBuf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
+        const d = noiseBuf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      } catch { ac = null; return; }
+    }
+    if (ac.state === 'suspended') ac.resume();
+  }
+  function env(gain, at, v, d) {
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(v, at + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + d);
+  }
+  function tone(f, f2, d, type = 'sine', v = 0.3, delay = 0, vib = 0) {
+    if (!ac || muted) return;
+    const at = ac.currentTime + delay;
+    const o = ac.createOscillator(), gn = ac.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f, at);
+    if (f2) o.frequency.exponentialRampToValueAtTime(f2, at + d);
+    if (vib) {
+      const l = ac.createOscillator(), lg = ac.createGain();
+      l.frequency.value = vib; lg.gain.value = f * 0.18;
+      l.connect(lg).connect(o.frequency); l.start(at); l.stop(at + d);
+    }
+    env(gn, at, v, d);
+    o.connect(gn).connect(out);
+    o.start(at); o.stop(at + d + 0.05);
+  }
+  function noise(d, f, f2, v = 0.3, delay = 0, type = 'bandpass', q = 1) {
+    if (!ac || muted) return;
+    const at = ac.currentTime + delay;
+    const src = ac.createBufferSource(), fl = ac.createBiquadFilter(), gn = ac.createGain();
+    src.buffer = noiseBuf;
+    fl.type = type; fl.Q.value = q;
+    fl.frequency.setValueAtTime(f, at);
+    if (f2) fl.frequency.exponentialRampToValueAtTime(f2, at + d);
+    env(gn, at, v, d);
+    src.connect(fl).connect(gn).connect(out);
+    src.start(at); src.stop(at + d + 0.05);
+  }
+  const SFX = {
+    tap: () => tone(520, 780, 0.09, 'square', 0.07),
+    flush: () => {
+      noise(1.8, 1500, 240, 0.5, 0, 'bandpass', 0.7);
+      for (let i = 0; i < 8; i++) tone(200 + Math.random() * 220, 480 + Math.random() * 300, 0.09, 'sine', 0.16, 0.15 + i * 0.17);
+    },
+    plop: () => tone(700, 110, 0.16, 'sine', 0.4),
+    bonk: () => { tone(330, 120, 0.5, 'sine', 0.45, 0, 15); noise(0.1, 500, 200, 0.3, 0, 'lowpass'); },
+    whee: () => { tone(320, 1150, 0.6, 'triangle', 0.22); noise(0.5, 2600, 1200, 0.16, 0, 'highpass'); },
+    clog: () => { for (let i = 0; i < 3; i++) tone(150, 80, 0.16, 'square', 0.1, i * 0.45); },
+    pop: () => { noise(0.14, 2800, 1500, 0.3); tone(900, 1500, 0.08, 'square', 0.08); },
+    hint: () => { tone(660, null, 0.1, 'triangle', 0.15); tone(880, null, 0.13, 'triangle', 0.15, 0.13); },
+    launch: () => { tone(200, 900, 0.35, 'triangle', 0.25); noise(0.3, 1800, 600, 0.2); },
+    land: () => { tone(420, 90, 0.22, 'sine', 0.45); noise(0.16, 600, 200, 0.25, 0, 'lowpass'); },
+    ding: () => { tone(1320, null, 0.35, 'sine', 0.2); tone(1760, null, 0.45, 'sine', 0.15, 0.08); },
+    fanfare: () => {
+      [523, 659, 784, 1047].forEach((f, i) => tone(f, null, 0.18, 'triangle', 0.22, i * 0.12));
+      [523, 659, 784, 1047].forEach(f => tone(f, null, 0.7, 'triangle', 0.11, 0.52));
+    },
+  };
+  function say(text) {
+    const ss = window.speechSynthesis;
+    if (!ss || muted) return;
+    try {
+      ss.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US'; u.rate = 1; u.pitch = 1.35;
+      const v = ss.getVoices().find(v => /^en[-_]US/i.test(v.lang)) || ss.getVoices().find(v => /^en/i.test(v.lang));
+      if (v) u.voice = v;
+      ss.speak(u);
+    } catch {}
+  }
+  function buzz(pattern) {
+    if (muted || !touch || typeof navigator.vibrate !== 'function') return;
+    try { navigator.vibrate(pattern); } catch {}
+  }
+  return {
+    unlock, say, buzz,
+    play(name) { try { SFX[name](); } catch {} },
+    isMuted: () => muted,
+    toggle() {
+      muted = !muted;
+      store.set('muted', muted);
+      if (out) out.gain.value = muted ? 0 : 0.6;
+      if (muted) try { speechSynthesis.cancel(); } catch {}
+      return muted;
+    },
+  };
+})();
+try { speechSynthesis.getVoices(); } catch {}   // some browsers load the voice list lazily
+
+/* ======== pixel helpers ======== */
+const hexCache = new Map();
+function rgb(hex) {
+  if (!hexCache.has(hex)) {
+    const n = parseInt(hex.slice(1), 16);
+    hexCache.set(hex, [(n >> 16) & 255, (n >> 8) & 255, n & 255]);
+  }
+  return hexCache.get(hex);
+}
+
+// Builds a small sprite pixel by pixel and returns it as a canvas.
+function makeSprite(w, h, paint) {
+  const px = new Array(w * h).fill(null);
+  const s = {
+    w, h,
+    set(x, y, c) { x = Math.round(x); y = Math.round(y); if (x >= 0 && y >= 0 && x < w && y < h) px[y * w + x] = c; },
+    get(x, y) { return x >= 0 && y >= 0 && x < w && y < h ? px[y * w + x] : null; },
+    rect(x, y, rw, rh, c) { for (let j = 0; j < rh; j++) for (let i = 0; i < rw; i++) s.set(x + i, y + j, c); },
+    ellipse(cx, cy, rx, ry, c) {
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const nx = (x + 0.5 - cx) / rx, ny = (y + 0.5 - cy) / ry;
+        if (nx * nx + ny * ny <= 1) s.set(x, y, typeof c === 'function' ? c(nx, ny, x, y) : c);
+      }
+    },
+    map(rows, pal, ox = 0, oy = 0) {
+      rows.forEach((row, y) => [...row].forEach((ch, x) => { if (pal[ch]) s.set(ox + x, oy + y, pal[ch]); }));
+    },
+    outline(c) {
+      const add = [];
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        if (px[y * w + x]) continue;
+        if (s.get(x - 1, y) || s.get(x + 1, y) || s.get(x, y - 1) || s.get(x, y + 1)) add.push([x, y]);
+      }
+      for (const [x, y] of add) px[y * w + x] = c;
+    },
+  };
+  paint(s);
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  const g = cv.getContext('2d');
+  const img = g.createImageData(w, h);
+  px.forEach((c, i) => {
+    if (!c) return;
+    const [r, gg, b] = rgb(c);
+    img.data.set([r, gg, b, 255], i * 4);
+  });
+  g.putImageData(img, 0, 0);
+  return cv;
+}
+
+function R(g, c, x, y, w, h) {
+  g.fillStyle = c;
+  g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+}
+// Filled ellipse drawn as whole pixel rows, so it stays crisp.
+function ell(g, c, cx, cy, rx, ry) {
+  g.fillStyle = c;
+  for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) {
+    const dy = (y + 0.5 - cy) / ry;
+    if (Math.abs(dy) > 1) continue;
+    const hw = rx * Math.sqrt(1 - dy * dy);
+    const x0 = Math.round(cx - hw), x1 = Math.round(cx + hw);
+    if (x1 > x0) g.fillRect(x0, y, x1 - x0, 1);
+  }
+}
+// Horizontal colour bands with a one-row checker dither between them.
+function bands(g, cols, y0, y1, W) {
+  const n = cols.length, h = (y1 - y0) / n;
+  for (let i = 0; i < n; i++) {
+    const a = Math.round(y0 + i * h), b = Math.round(y0 + (i + 1) * h);
+    R(g, cols[i], 0, a, W, b - a);
+  }
+  for (let i = 1; i < n; i++) {
+    const by = Math.round(y0 + i * h);
+    g.fillStyle = cols[i];
+    for (let x = 0; x < W; x += 2) g.fillRect(x, by - 1, 1, 1);
+    g.fillStyle = cols[i - 1];
+    for (let x = 1; x < W; x += 2) g.fillRect(x, by, 1, 1);
+  }
+}
+function hash(a, b = 0) {
+  let h = Math.imul(a | 0, 374761393) + Math.imul(b | 0, 668265263);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+const rnd = n => hash(n, 7);
+function speckle(g, cols, x, y, w, h, every, seed) {
+  const n = Math.floor(w * h / every);
+  for (let i = 0; i < n; i++) {
+    R(g, cols[i % cols.length], x + Math.floor(hash(i, seed) * w), y + Math.floor(hash(i, seed + 1) * h), 1, 1);
+  }
+}
+function drawSprite(g, spr, x, y, flip = false) {
+  x = Math.round(x); y = Math.round(y);
+  if (!flip) { g.drawImage(spr, x, y); return; }
+  g.save();
+  g.translate(x + spr.width, y);
+  g.scale(-1, 1);
+  g.drawImage(spr, 0, 0);
+  g.restore();
+}
+const drawCentered = (g, spr, x, y, flip) => drawSprite(g, spr, x - (spr.width >> 1), y - (spr.height >> 1), flip);
+
+/* ======== sprites: the poo ======== */
+// The poo's body is assets/poo.png, a 32x32 sprite drawn with PixelLab. Its face is painted on top here, so it can blink,
+// look around and pull faces. (POO_AX, POO_AY) is the point of the sprite that sits on the poo's position.
+const POO_BODY = { x: 4, y: 3, w: 25, h: 26 };      // where the body sits inside poo.png
+const pooCache = new Map();
+// sq: squash (+ flatter, - taller). eyes: open|blink|wide|happy|dizzy|squint. mouth: smile|open|o|grit|wavy.
+function pooSprite(sq = 0, eyes = 'open', mouth = 'smile', look = 0) {
+  const key = [sq, eyes, mouth, look].join('|');
+  if (pooCache.has(key)) return pooCache.get(key);
+  const spr = document.createElement('canvas');
+  spr.width = spr.height = POO_SIZE;
+  const c = spr.getContext('2d');
+  c.imageSmoothingEnabled = false;
+  // squash and stretch by resampling the body on its own pixel grid, keeping the bottom on the ground
+  const hs = 1 - sq * 0.24, ws = 1 + sq * 0.16, B = POO_BODY, bottom = B.y + B.h;
+  const dw = Math.round(B.w * ws), dh = Math.round(B.h * hs);
+  c.drawImage(IMG.poo, B.x, B.y, B.w, B.h, Math.round(B.x + B.w / 2 - dw / 2), bottom - dh, dw, dh);
+  const row = y => Math.round(bottom - (bottom - y) * hs);
+  const set = (x, y, col) => { c.fillStyle = col; c.fillRect(x, y, 1, 1); };
+  face(set, eyes, mouth, look, [Math.round(16.5 - 5.5 * ws), Math.round(16.5 + 2.5 * ws)], row(16), row(23));
+  pooCache.set(key, spr);
+  return spr;
+}
+function face(set, eyes, mouth, look, eyeX, y, my) {
+  const K = C.eye, Wt = C.white;
+  const rect = (x, yy, w, h, col) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) set(x + i, yy + j, col); };
+  eyeX.map(x => x + look).forEach((x, i) => {
+    if (eyes === 'open') { rect(x, y, 2, 3, K); set(x, y, Wt); }
+    else if (eyes === 'wide') { rect(x, y - 1, 2, 4, K); set(x, y - 1, Wt); set(x, y, Wt); }
+    else if (eyes === 'blink') { rect(x, y + 2, 2, 1, K); }
+    else if (eyes === 'happy') { const b = i ? x - 1 : x; set(b, y + 1, K); set(b + 1, y, K); set(b + 2, y + 1, K); }
+    else if (eyes === 'dizzy') { const b = i ? x - 1 : x; for (const [a, c] of [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]]) set(b + a, y + c, K); }
+    else if (eyes === 'squint') {
+      if (!i) { set(x, y, K); set(x + 1, y + 1, K); set(x, y + 2, K); }
+      else { set(x + 1, y, K); set(x, y + 1, K); set(x + 1, y + 2, K); }
+    }
+  });
+  const m = 14 + look;
+  set(m - 6, my, C.cheek); set(m - 5, my, C.cheek); set(m + 8, my, C.cheek); set(m + 9, my, C.cheek);
+  if (mouth === 'smile') { set(m, my, C.mouth); set(m + 3, my, C.mouth); set(m + 1, my + 1, C.mouth); set(m + 2, my + 1, C.mouth); }
+  else if (mouth === 'open') { rect(m, my, 4, 2, C.mouth); set(m + 1, my + 1, C.tongue); set(m + 2, my + 1, C.tongue); }
+  else if (mouth === 'o') { rect(m + 1, my, 2, 2, C.mouth); }
+  else if (mouth === 'grit') { rect(m, my, 4, 2, C.mouth); rect(m, my, 4, 1, Wt); }
+  else if (mouth === 'wavy') { set(m, my + 1, C.mouth); set(m + 1, my, C.mouth); set(m + 2, my + 1, C.mouth); set(m + 3, my, C.mouth); }
+}
+const drawPoo = (spr, x, y, flip) => drawSprite(g, spr, x - POO_AX, y - POO_AY, flip);
+
+// Holiday accessories, drawn over the poo. Painted in poo.png coordinates, shifted by (4, 6) into a 40x40 sprite.
+// anchor: the poo.png row the hat follows when the poo squashes.
+const HAT_DX = -4, HAT_DY = -6;
+const HATS = { shades: { anchor: 16 }, beanie: { anchor: 8 }, beret: { anchor: 8 }, explorer: { anchor: 8 } };
+function hatSprite(kind) {
+  return makeSprite(40, 40, s0 => {
+    const s = {
+      set: (x, y, c) => s0.set(x + 4, y + 6, c),
+      rect: (x, y, w, h, c) => s0.rect(x + 4, y + 6, w, h, c),
+      ellipse: (cx, cy, rx, ry, c) => s0.ellipse(cx + 4, cy + 6, rx, ry, c),
+    };
+    if (kind === 'shades') {
+      s.rect(8, 16, 17, 1, '#ff4f9a');
+      s.rect(9, 15, 6, 4, '#ff4f9a'); s.rect(18, 15, 6, 4, '#ff4f9a');
+      s.rect(10, 16, 4, 2, '#1f2438'); s.rect(19, 16, 4, 2, '#1f2438');
+      s.set(10, 16, '#9fe3ff'); s.set(19, 16, '#9fe3ff');
+      s0.outline('#3a1f0e');
+    } else if (kind === 'beanie') {
+      s.ellipse(16.5, 10, 8.4, 7.4, (nx, ny, x) => ny > 0.15 ? null : (x % 3 === 0 ? '#ffd166' : '#e94b4b'));
+      s.rect(8, 9, 17, 3, '#f4f4f4');
+      s.rect(8, 11, 17, 1, '#d6dbe4');
+      s.ellipse(16.5, 2, 2.6, 2.6, '#ffffff');
+      s0.outline('#5a1a1a');
+    } else if (kind === 'beret') {
+      s.ellipse(15.5, 7.5, 9.5, 3.2, (nx, ny) => ny > 0.4 ? '#1d2a50' : '#2f4588');
+      s.rect(15, 2, 2, 3, '#2f4588');
+      s.set(10, 6, '#4a64b4'); s.set(11, 5, '#4a64b4'); s.set(12, 5, '#4a64b4');
+      s0.outline('#101830');
+    } else if (kind === 'explorer') {
+      s.ellipse(16.5, 9, 7.2, 6.4, (nx, ny) => ny > 0.1 ? null : nx < -0.2 ? '#f2dfae' : '#e1c88d');
+      s.rect(10, 7, 14, 2, '#8a5a2b');
+      s.ellipse(16.5, 10, 12.5, 2.2, (nx, ny) => ny > 0.2 ? '#c8ad72' : '#e1c88d');
+      s0.outline('#4a3618');
+    }
+  });
+}
+
+/* ======== sprites: props ======== */
+// Pictures drawn with PixelLab live in assets/ as small PNGs; the arrows, stars, pipes and scenes are drawn here.
+const ASSET_NAMES = ['poo', 'tproll', 'duck', 'plant', 'towel', 'picture', 'sign', 'splash', 'rock', 'pebbles', 'bone',
+  'worm', 'crystal', 'fossil', 'palm', 'umbrella', 'crab', 'parrot', 'cabin', 'pine',
+  'mole', 'toycar', 'boot', 'pot', 'dinoskull', 'chest', 'mushrooms'];
+const IMG = {};
+function loadAssets() {
+  return Promise.all(ASSET_NAMES.map(n => new Promise((ok, fail) => {
+    const im = new Image();
+    im.onload = () => ok(IMG[n] = im);
+    im.onerror = () => fail(new Error(`missing assets/${n}.png`));
+    im.src = `assets/${n}.png?v=${ASSET_V}`;
+  })));
+}
+// Draws a picture standing on (x, base). Scenes shrink them for the small postcards.
+function drawProp(g, img, x, base, s = 1, flip = false) {
+  const w = Math.max(1, Math.round(img.width * s)), h = Math.max(1, Math.round(img.height * s));
+  g.imageSmoothingEnabled = false;
+  if (!flip) { g.drawImage(img, Math.round(x - w / 2), Math.round(base - h), w, h); return; }
+  g.save();
+  g.translate(Math.round(x + w / 2), Math.round(base - h));
+  g.scale(-1, 1);
+  g.drawImage(img, 0, 0, w, h);
+  g.restore();
+}
+const propScale = H => H < 200 ? H / 300 : 1;
+
+const SPR = {};
+function buildSprites() {
+  const P = { k: '#3a2414', y: '#ffd43b', o: '#ffa41b', w: '#fff6c8' };
+  const arrowRows = [
+    '.........k......',
+    '.........kk.....',
+    '.........kyk....',
+    '.........kyyk...',
+    'kkkkkkkkkkwyyk..',
+    'kwwwwwwwwwwyyyk.',
+    'kyyyyyyyyyyyyyyk',
+    'kyyyyyyyyyyyyyyk',
+    'kooooooooooooyk.',
+    'kkkkkkkkkkoook..',
+    '.........kook...',
+    '.........kok....',
+    '.........kk.....',
+    '.........k......',
+  ];
+  SPR.arrowR = makeSprite(16, 14, s => s.map(arrowRows, P));
+  SPR.arrowL = makeSprite(16, 14, s => s.map(arrowRows.map(r => [...r].reverse().join('')), P));
+  SPR.star = makeSprite(7, 7, s => {
+    s.map(['..y..', '.yyy.', 'yyyyy', '.yyy.', '.y.y.'], { y: '#ffe14d' }, 1, 1);
+    s.outline('#7a5a10');
+  });
+}
+
+/* ======== the toilet ======== */
+// Drawn in code: a front view big enough for the poo to sit in. Rows below the rim are also kept as a separate
+// "front" sprite that is drawn over the poo, so it looks like it sits in the water.
+function buildToilet() {
+  const k = 1.5, TW = 66, TH = 81, cx = 33;
+  const full = makeSprite(TW, TH, s => {
+    const rect = (x, y, w, h, c) => s.rect(Math.round(x * k), Math.round(y * k), Math.round(w * k), Math.round(h * k), c);
+    rect(7, 2, 30, 5, C.porc);
+    s.rect(Math.round(7 * k), 3, Math.round(30 * k), 1, '#ffffff');
+    rect(9, 7, 26, 14, C.porc);
+    rect(31, 7, 4, 14, C.porcShade);
+    rect(11, 9, 6, 2, '#b8c4d6');
+    for (let y = Math.round(28 * k); y < Math.round(46 * k); y++) {
+      const hw = (18.5 - (y / k - 28) * 0.45) * k;
+      for (let x = Math.round(cx - hw); x < Math.round(cx + hw); x++) s.set(x, y, x > cx + hw - 7 ? C.porcShade : C.porc);
+    }
+    for (let y = Math.round(46 * k); y < Math.round(53 * k); y++) {
+      const hw = (10 + (y / k - 46) * 0.4) * k;
+      for (let x = Math.round(cx - hw); x < Math.round(cx + hw); x++) s.set(x, y, x > cx + hw - 6 ? C.porcShade : C.porc);
+    }
+    s.ellipse(cx, 27 * k, 20 * k, 5.6 * k, (nx, ny) => ny > 0.5 ? C.porcShade : C.porc);
+    s.ellipse(cx, 26.6 * k, 15.5 * k, 3.8 * k, C.porcShade);
+    s.ellipse(cx, 26.6 * k, 14.5 * k, 3.2 * k, (nx, ny) => ny < -0.2 ? C.bowlDeep : C.bowlWater);
+    s.outline(C.porcInk);
+  });
+  const cut = Math.round(27 * k);
+  const front = document.createElement('canvas');
+  front.width = TW; front.height = TH;
+  front.getContext('2d').drawImage(full, 0, cut, TW, TH - cut, 0, cut, TW, TH - cut);
+  return { full, front };
+}
+const TOILET_X = CX - 33, TOILET_Y = -75;   // top-left of the toilet sprite; its rim centre sits at y = -35
+
+/* ======== holiday spots ======== */
+const groundY = H => Math.round(H * 0.76);
+
+function cloud(g, x, y, s) {
+  ell(g, '#ffffff', x, y, 9 * s, 3.5 * s);
+  ell(g, '#ffffff', x + 4 * s, y - 3 * s, 5.5 * s, 4 * s);
+  ell(g, '#ffffff', x - 4 * s, y - 1.5 * s, 4 * s, 3 * s);
+  R(g, '#e3eef8', x - 8 * s, y + 2 * s, 16 * s, 1);
+}
+function sun(g, x, y, r, t) {
+  for (let k = 0; k < 8; k++) {
+    const a = k * Math.PI / 4 + t * 0.4;
+    for (let d = r + 3; d < r + 6; d++) R(g, '#ffd23f', x + Math.cos(a) * d, y + Math.sin(a) * d, 1, 1);
+  }
+  ell(g, '#ffc61a', x, y, r + 1, r + 1);
+  ell(g, '#ffe066', x, y, r, r);
+  ell(g, '#fff6c8', x - r * 0.3, y - r * 0.3, r * 0.35, r * 0.35);
+}
+function bird(g, x, y, t) {
+  const up = Math.sin(t * 9) > 0;
+  for (const [a, b] of up ? [[-2, -1], [-1, 0], [0, 0], [1, 0], [2, -1]] : [[-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0]])
+    R(g, '#2b2b44', x + a, y + b, 1, 1);
+}
+function mountain(g, col, shade, snow, px, py, base, slope) {
+  py = Math.round(py);
+  for (let y = py; y < base; y++) {
+    const hw = Math.round((y - py) * slope);
+    R(g, col, px - hw, y, hw + 1, 1);
+    R(g, shade, px + 1, y, hw, 1);
+  }
+  if (!snow) return;
+  const cap = Math.round((base - py) * 0.24);
+  for (let y = py; y < py + cap; y++) {
+    const hw = Math.round((y - py) * slope);
+    R(g, snow, px - hw, y, hw * 2 + 1, 1);
+  }
+  const hwc = Math.round(cap * slope);
+  for (let i = -2; i <= 2; i++) {
+    const dx = Math.round(i * hwc / 2.6);
+    for (let k = 0; k < 3; k++) R(g, snow, px + dx - (2 - k), py + cap + k, (2 - k) * 2 + 1, 1);
+  }
+}
+function beachBg(g, W, H) {
+  const gy = groundY(H), hz = Math.round(H * 0.5);
+  bands(g, ['#4cc0ff', '#6ccdff', '#8fdaff', '#b6e8ff'], 0, hz, W);
+  ell(g, '#4f9e6b', W * 0.3, hz, W * 0.1, H * 0.04);
+  ell(g, '#68b884', W * 0.3, hz - 1, W * 0.07, H * 0.028);
+  bands(g, ['#2d86d2', '#379ce2', '#46b2ee'], hz, gy - 3, W);
+  R(g, '#f5d488', 0, gy - 3, W, H - gy + 3);
+  R(g, '#e5bd6a', 0, gy - 3, W, 2);
+  speckle(g, ['#e2b863', '#fff0c4'], 0, gy, W, H - gy, 24, 3);
+  const ty = gy + (H - gy) * 0.45;
+  R(g, '#ff6b8b', W * 0.63, ty, W * 0.13, Math.max(3, H * 0.04));
+  for (let i = 1; i < 4; i++) R(g, '#ffffff', W * 0.63 + i * W * 0.032, ty, 1, Math.max(3, H * 0.04));
+  drawProp(g, IMG.umbrella, W * 0.72, ty + 3, propScale(H));
+  drawProp(g, IMG.palm, W * 0.88, gy + (H - gy) * 0.35, propScale(H));
+}
+function beachFx(g, W, H, t) {
+  const gy = groundY(H), hz = Math.round(H * 0.5);
+  sun(g, W * 0.6, H * 0.16, Math.max(4, Math.round(H * 0.055)), t);
+  for (let i = 0; i < 3; i++) cloud(g, ((rnd(i) * W + t * (3 + i * 2)) % (W + 60)) - 30, H * (0.08 + i * 0.1), H / 200);
+  for (let i = 0; i < W / 8; i++) {
+    const x = (((rnd(i + 40) * W + t * 5 * (i % 2 ? 1 : -1)) % W) + W) % W;
+    R(g, '#a9dcff', x, hz + 2 + Math.floor(rnd(i + 80) * (gy - hz - 8)), 4, 1);
+  }
+  for (let x = 0; x < W; x += 2) R(g, '#ffffff', x, gy - 4 + (Math.sin(x * 0.15 + t * 2) > 0.2 ? 0 : 1), 2, 1);
+  drawProp(g, IMG.crab, W * 0.33 + Math.sin(t * 0.9) * W * 0.06, gy + (H - gy) * 0.75 - (Math.floor(t * 6) % 2), propScale(H));
+  bird(g, ((t * 14) % (W + 40)) - 20, H * 0.3 + Math.sin(t * 2) * 3, t);
+}
+
+function mountainsBg(g, W, H) {
+  const gy = groundY(H);
+  bands(g, ['#5aa9f0', '#7bbcf5', '#a0d0fa', '#c8e5ff'], 0, gy, W);
+  const MH = Math.min(H * 0.5, W * 0.75);   // mountain height, kept sane on tall phone screens
+  const n1 = Math.ceil(W / 46) + 1;
+  for (let k = 0; k < n1; k++)
+    mountain(g, '#aac0de', '#bccde6', null, (k + rnd(k + 3) * 0.6) * 46 - 10, gy - MH * (0.55 + rnd(k + 9) * 0.25), gy, 1.1);
+  const n2 = Math.ceil(W / 78) + 1;
+  for (let k = 0; k < n2; k++)
+    mountain(g, '#7d8db0', '#67779b', '#ffffff', (k + 0.3 + rnd(k + 20) * 0.4) * 78 - 20, gy - MH * (0.72 + rnd(k + 30) * 0.28), gy, 0.9);
+  R(g, '#6cc25a', 0, gy, W, H - gy);
+  R(g, '#8ad673', 0, gy, W, 2);
+  const ps = propScale(H);
+  for (let x = 6; x < W; x += Math.max(4, Math.round((16 + rnd(x) * 18) * ps))) drawProp(g, IMG.pine, x, gy + 2 + rnd(x + 1) * 3 * ps, ps, rnd(x + 2) < 0.5);
+  speckle(g, ['#ffffff', '#ffd43b', '#ff6b8b', '#4f9a3f'], 0, gy + 3, W, H - gy - 3, 20, 11);
+  drawProp(g, IMG.cabin, W * 0.8, Math.round(gy + (H - gy) * 0.6), ps);
+}
+function mountainsFx(g, W, H, t) {
+  for (let i = 0; i < 3; i++) cloud(g, ((rnd(i + 5) * W + t * (2 + i * 2)) % (W + 60)) - 30, H * (0.07 + i * 0.08), H / 220);
+  bird(g, ((t * 11) % (W + 40)) - 20, H * 0.2 + Math.sin(t * 1.5) * 4, t);
+  bird(g, ((t * 11 + 8) % (W + 40)) - 20, H * 0.22 + Math.sin(t * 1.5 + 1) * 4, t + 0.3);
+}
+
+function cityBg(g, W, H) {
+  const gy = groundY(H);
+  bands(g, ['#1f1747', '#33206a', '#552c82', '#843a86', '#c35a7d', '#ee9469'], 0, gy, W);
+  const mr = Math.max(3, H * 0.05);
+  ell(g, '#fff2bf', W * 0.22, H * 0.13, mr, mr);
+  ell(g, '#f0dd9a', W * 0.22 + mr * 0.3, H * 0.13 + mr * 0.2, mr * 0.3, mr * 0.3);
+  for (let x = 0; x < W;) {
+    const w = 8 + Math.floor(rnd(x + 1) * 10), h = H * (0.16 + rnd(x + 2) * 0.24);
+    R(g, '#43306f', x, gy - h, w, h);
+    for (let wy = gy - h + 3; wy < gy - 3; wy += 4) for (let wx = x + 2; wx < x + w - 2; wx += 3)
+      R(g, hash(wx, wy) > 0.7 ? '#b48ad8' : '#5e4890', wx, wy, 1, 2);
+    x += w + 1;
+  }
+  const tx = Math.round(W * 0.74), th = Math.round(H * 0.5), top = gy - th, tc = '#1a1230';
+  R(g, tc, tx, top - 5, 1, 5);
+  for (let y = top; y < gy; y++) {
+    const u = (y - top) / th, hw = Math.round(1 + u * u * th * 0.26);
+    R(g, tc, tx - hw, y, 2, 1);
+    R(g, tc, tx + hw - 1, y, 2, 1);
+    if (u < 0.3 || y % 4 === 0) R(g, tc, tx - hw, y, hw * 2 + 1, 1);
+    if (Math.abs(u - 0.55) < 0.015 || Math.abs(u - 0.8) < 0.015) R(g, tc, tx - hw - 1, y, hw * 2 + 3, 2);
+  }
+  for (let x = -3; x < W;) {
+    const w = 10 + Math.floor(rnd(x + 50) * 12), h = H * (0.08 + rnd(x + 51) * 0.18);
+    R(g, '#271b4a', x, gy - h, w, h);
+    for (let wy = gy - h + 3; wy < gy - 4; wy += 5) for (let wx = x + 2; wx < x + w - 2; wx += 4)
+      R(g, hash(wx, wy + 1) > 0.5 ? '#ffd66b' : '#3b2d66', wx, wy, 2, 2);
+    x += w + 2 + Math.floor(rnd(x + 52) * 4);
+  }
+  R(g, '#9a92b8', 0, gy - 2, W, 4);
+  R(g, '#6d6690', 0, gy + 2, W, 1);
+  R(g, '#3a3552', 0, gy + 3, W, H - gy - 3);
+  const ry = Math.round(gy + 3 + (H - gy - 3) / 2);
+  for (let x = 2; x < W; x += 12) R(g, '#f1e4a0', x, ry, 6, 1);
+  for (let x = 30; x < W; x += 52) {
+    R(g, '#1b1335', x, gy - 17, 1, 16);
+    R(g, '#ffe28a', x - 1, gy - 19, 3, 2);
+  }
+}
+function cityFx(g, W, H, t) {
+  const gy = groundY(H), lx = Math.round(W * 0.5);
+  const k = H / 260;   // the glowing street lamp next to the landing spot, so the poo stands out on the dark street
+  g.globalAlpha = 0.45;
+  ell(g, '#ffe7a3', lx, gy - 12 * k, 22 * k, 17 * k);
+  ell(g, '#fff4cf', lx, gy - 10 * k, 14 * k, 11 * k);
+  g.globalAlpha = 1;
+  R(g, '#1b1335', lx + 15 * k, gy - 26 * k, 2, 26 * k);
+  R(g, '#1b1335', lx + 11 * k, gy - 27 * k, 6 * k, 2);
+  R(g, '#ffe28a', lx + 10 * k, gy - 25 * k, 4 * k, 2);
+  for (let i = 0; i < 34; i++) if (hash(i, Math.floor(t * 2 + rnd(i) * 3)) > 0.25)
+    R(g, '#fff6d0', rnd(i + 100) * W, rnd(i + 200) * H * 0.35, 1, 1);
+  const tx = Math.round(W * 0.74), top = gy - Math.round(H * 0.5);
+  if (Math.floor(t * 2) % 2) R(g, '#ff4f5e', tx - 1, top - 7, 3, 2);
+  const cols = ['#ff595e', '#ffca3a', '#8ac926', '#5ec8ff', '#ff8fab'];
+  for (let k = Math.floor(t / 0.9) - 1; k <= Math.floor(t / 0.9); k++) {
+    const ph = t - k * 0.9;
+    if (k < 0 || ph > 1.4) continue;
+    const fx = W * (0.15 + hash(k, 1) * 0.7), fy = H * (0.12 + hash(k, 2) * 0.2), c = cols[k % cols.length];
+    if (ph < 0.35) { R(g, '#ffe9b0', fx, fy + (0.35 - ph) * H * 0.6, 1, 2); continue; }
+    const r = (ph - 0.35) * 22;
+    for (let i = 0; i < 12; i++) {
+      const a = i * Math.PI / 6;
+      R(g, ph > 1.1 && i % 2 ? '#ffffff' : c, fx + Math.cos(a) * r, fy + Math.sin(a) * r + (ph - 0.35) * 4, 1, 1);
+    }
+  }
+}
+
+function jungleBg(g, W, H) {
+  const gy = groundY(H);
+  bands(g, ['#9fe3ff', '#c6f1e4', '#d9f7c8'], 0, Math.round(H * 0.5), W);
+  for (let i = 0; i < W / 10; i++)
+    ell(g, '#2f7a4b', rnd(i) * W, H * (0.3 + rnd(i + 5) * 0.22), (8 + rnd(i + 9) * 14) * H / 260, (7 + rnd(i + 11) * 9) * H / 260);
+  R(g, '#2f7a4b', 0, H * 0.48, W, gy - H * 0.48);
+  const cx = Math.round(W * 0.8), cw = Math.round(Math.max(18, W * 0.2)), ct = Math.round(H * 0.16);
+  R(g, '#5d735f', cx - cw / 2, ct, cw, gy - ct);
+  for (let i = 0; i < 18; i++) R(g, '#4c614e', cx - cw / 2 + rnd(i + 70) * (cw - 6), ct + rnd(i + 71) * (gy - ct - 4), 6, 3);
+  R(g, '#86d4ff', cx - Math.round(cw * 0.18), ct, Math.round(cw * 0.36), gy - ct);
+  for (let i = 0; i < W / 9; i++)
+    ell(g, i % 3 ? '#3f9e5c' : '#4cb06a', rnd(i + 30) * W, gy - 4 - rnd(i + 31) * H * 0.08, (6 + rnd(i + 32) * 9) * H / 260, (5 + rnd(i + 33) * 5) * H / 260);
+  ell(g, '#4bb8ee', cx, gy + 2, cw * 0.5, 3.5);
+  R(g, '#58a845', 0, gy, W, H - gy);
+  R(g, '#7cc95f', 0, gy, W, 2);
+  ell(g, '#4bb8ee', cx, gy + 2, cw * 0.45, 3);
+  speckle(g, ['#4c933b', '#8bd36a'], 0, gy + 3, W, H - gy - 3, 14, 21);
+  for (let i = 0; i < W / 26; i++) {
+    const x = Math.round(rnd(i + 60) * W), len = H * (0.08 + rnd(i + 61) * 0.24);
+    R(g, '#236b37', x, 0, 1, len);
+    for (let y = 3; y < len; y += 4) R(g, '#3fae5a', x + (y % 8 ? 1 : -2), y, 2, 1);
+  }
+  for (let i = 0; i < W / 14; i++) {
+    const x = rnd(i + 90) * W, y = gy - 2 - rnd(i + 91) * H * 0.1;
+    ell(g, i % 2 ? '#ff4f6d' : '#ff9f1c', x, y, 1.6, 1.6);
+    R(g, '#ffe14d', x, y, 1, 1);
+  }
+}
+function jungleFx(g, W, H, t) {
+  const gy = groundY(H), cx = Math.round(W * 0.8), cw = Math.round(Math.max(18, W * 0.2)), ct = Math.round(H * 0.16);
+  const wx = cx - Math.round(cw * 0.18), ww = Math.round(cw * 0.36);
+  for (let i = 0; i < 16; i++)
+    R(g, '#e6f8ff', wx + Math.floor(rnd(i + 300) * ww), ct + ((t * 70 + rnd(i + 301) * 300) % (gy - ct - 4)), 1, 4);
+  for (let i = 0; i < 6; i++) {
+    const ph = (t * 1.6 + i / 6) % 1;
+    R(g, '#ffffff', cx + (i - 2.5) * cw * 0.12, gy - ph * 6, 1, 1);
+  }
+  const bx = Math.round(W * 0.28), by = Math.round(H * 0.36);
+  drawProp(g, IMG.parrot, bx, by + Math.round(20 * propScale(H)) + (Math.sin(t * 3) > 0.6 ? 0 : 1), propScale(H));
+  for (let i = 0; i < 2; i++) {
+    const x = W * (0.45 + 0.2 * Math.sin(t * 0.7 + i * 2)), y = H * (0.42 + 0.08 * Math.sin(t * 1.3 + i));
+    const c = i ? '#ffd43b' : '#ff7ac8', open = Math.sin(t * 14 + i) > 0;
+    R(g, c, x - (open ? 2 : 1), y, open ? 2 : 1, 2); R(g, c, x + 1, y, open ? 2 : 1, 2); R(g, '#3a2414', x, y, 1, 2);
+  }
+}
+
+const DESTS = [
+  { id: 'beach', name: 'Beach', emoji: '🏖️', hat: 'shades', say: 'Welcome to the beach!', ground: '#f5d488', bg: beachBg, fx: beachFx },
+  { id: 'mountains', name: 'Mountains', emoji: '🏔️', hat: 'beanie', say: 'Welcome to the mountains!', ground: '#6cc25a', bg: mountainsBg, fx: mountainsFx },
+  { id: 'city', name: 'City', emoji: '🏙️', hat: 'beret', say: 'Welcome to the big city!', ground: '#9a92b8', bg: cityBg, fx: cityFx },
+  { id: 'jungle', name: 'Jungle', emoji: '🦜', hat: 'explorer', say: 'Welcome to the jungle!', ground: '#58a845', bg: jungleBg, fx: jungleFx },
+];
+
+/* ======== the pipe world ======== */
+// The pipes form rows of junctions over five lanes. At a T the poo turns left or right; at the two edge lanes the
+// pipe bends back inward by itself. Branches that reach the same lane join, and some branches end at a no-entry
+// sign. Every pipe always has at least one open way onward, and the last row leads back to the middle lane.
+function seg(x1, y1, x2, y2, water = false) {
+  return { x1: Math.min(x1, x2), y1: Math.min(y1, y2), x2: Math.max(x1, x2), y2: Math.max(y1, y2), water };
+}
+const other = side => side === 'L' ? 'R' : 'L';
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+function buildWorld() {
+  const w = { segs: [], items: [], rows: [], exitY: 0 };
+  let active = [2], y = FIRST_DROP;
+  w.segs.push(seg(CX, FLOOR_H - 4, CX, y));
+  for (let r = 0; r < TRIP_ROWS; r++) {
+    const last = r === TRIP_ROWS - 1;
+    const nodes = {};
+    for (const lane of active) {
+      const outs = lane === 0 ? { R: 1 } : lane === LANES - 1 ? { L: LANES - 2 } : { L: lane - 1, R: lane + 1 };
+      nodes[lane] = { r, lane, y, outs, type: Object.keys(outs).length === 2 ? 'T' : 'bend', dead: null };
+    }
+    const list = Object.values(nodes);
+    const all = new Set(list.flatMap(n => Object.values(n.outs)));
+    const mustLive = new Set(list.filter(n => n.type === 'bend').flatMap(n => Object.values(n.outs)));
+    const keepsAWayOn = set => list.every(n => Object.values(n.outs).some(l => set.has(l)));
+    const tryClose = (live, l) => {
+      const trial = new Set(live);
+      trial.delete(l);
+      return !mustLive.has(l) && keepsAWayOn(trial) ? trial : live;
+    };
+    let live = new Set(all);
+    if (last) live = new Set([2]);
+    else {
+      for (const n of shuffle(list.filter(n => n.type === 'T')))
+        if (Math.random() < DEAD_END_CHANCE) live = tryClose(live, n.outs[Math.random() < 0.5 ? 'L' : 'R']);
+      for (const l of shuffle([...live])) if (live.size > MAX_BRANCHES) live = tryClose(live, l);
+    }
+    const ny = last ? y + EXIT_LEN : y + ROW_MIN + Math.floor(Math.random() * (ROW_MAX - ROW_MIN));
+    for (const n of list) {
+      const lanes = [n.lane, ...Object.values(n.outs)];
+      w.segs.push(seg(laneX(Math.min(...lanes)), y, laneX(Math.max(...lanes)), y));
+      for (const [side, l] of Object.entries(n.outs)) if (!live.has(l)) n.dead = side;
+    }
+    for (const l of all) {
+      const x = laneX(l);
+      if (!live.has(l)) {
+        w.segs.push(seg(x, y, x, y + DEAD_LEN));
+        w.items.push({ type: 'sign', x, y: y + DEAD_LEN });
+        continue;
+      }
+      const roll = Math.random(), water = !last && roll < WATER_CHANCE;
+      w.segs.push(seg(x, y, x, ny, water));
+      if (water) w.items.push({ type: 'water', x, y: y + 21 });
+      else if (!last && roll < WATER_CHANCE + TP_CHANCE) w.items.push({ type: 'tp', x, y: Math.round(y + (ny - y) * 0.55) });
+    }
+    w.rows.push({ y, nodes });
+    active = [...live];
+    y = ny;
+  }
+  w.exitY = y;
+  return w;
+}
+
+// The waypoint where the poo arrives after leaving node n down lane `lane`.
+function nextStop(n, lane) {
+  const nr = world.rows[n.r + 1];
+  return nr ? { x: laneX(lane), y: nr.y, j: nr.nodes[lane] } : { x: CX, y: world.exitY - 4, ev: 'end' };
+}
+// Waypoints after the poo turns `side` at node n.
+function route(n, side) {
+  const go = s => [{ x: laneX(n.outs[s]), y: n.y }, nextStop(n, n.outs[s])];
+  if (n.dead !== side) return go(side);
+  const X = laneX(n.outs[side]);
+  return [{ x: X, y: n.y }, { x: X, y: n.y + DEAD_LEN - 20, ev: 'bonk' }, { x: X, y: n.y }, ...go(other(side))];
+}
+
+/* ======== game state ======== */
+const canvas = document.getElementById('game');
+const g = canvas.getContext('2d');
+let W = 200, H = 300, offX = 0, pxScale = 1;
+let mode = 'menu';           // menu | trip | dest
+let T = 0;                   // seconds since start, drives idle animations
+let world = null, poo = null, pending = null, dest = null, trip = null;
+let cam = { y: 0 };
+let parts = [];
+let toilet, dirtTiles, hatCache = {};
+let visited = store.get('visited', []);
+
+function newPoo() {
+  return {
+    x: CX, y: POO_START_Y, state: 'idle', path: [], speed: 0, dirX: 0, dirY: 1,
+    flushT: 0, rideT: 0, boostT: 0, clogT: 0, bonkT: 0, waitT: 0, tp: null,
+  };
+}
+
+function startTrip(d) {
+  trip = { dest: d, t: 0, irisT: 0, shake: 0, asked: false };
+  world = buildWorld();
+  poo = newPoo();
+  poo.state = 'flush';
+  poo.path = [{ x: CX, y: world.rows[0].y, j: world.rows[0].nodes[2] }];
+  pending = null;
+  parts = [];
+  mode = 'trip';
+  Sound.play('flush');
+  Sound.buzz([30, 40, 30]);
+  ui.menu.hidden = true;
+  ui.done.hidden = true;
+  ui.hud.hidden = false;
+  ui.left.hidden = ui.right.hidden = false;
+  ui.goal.textContent = d.emoji;
+}
+
+function toMenu() {
+  mode = 'menu';
+  world = null; dest = null; trip = null; pending = null; parts = [];
+  poo = newPoo();
+  cam.y = -(H - 24);
+  ui.menu.hidden = false;
+  ui.done.hidden = true;
+  ui.hud.hidden = true;
+  ui.left.hidden = ui.right.hidden = true;
+  renderCards();
+}
+
+function choose(side) {
+  if (mode !== 'trip' || !poo || poo.state === 'exit') return;
+  pending = side;
+  Sound.play('tap');
+  const pad = side === 'L' ? ui.left : ui.right;
+  pad.classList.add('on');
+  setTimeout(() => pad.classList.remove('on'), 150);
+  if (poo.state === 'wait') resolveJunction();
+}
+
+function takeTurn(side) {
+  const wp = poo.path.shift();
+  poo.path.unshift(...route(wp.j, side));
+}
+
+function resolveJunction() {
+  takeTurn(pending);
+  pending = null;
+  poo.state = 'ride';
+  ui.left.classList.remove('pulse');
+  ui.right.classList.remove('pulse');
+}
+
+function moveAlong(dist) {
+  while (dist > 0 && poo.path.length) {
+    const wp = poo.path[0];
+    const dx = wp.x - poo.x, dy = wp.y - poo.y, d = Math.hypot(dx, dy);
+    if (d > 0.001) { poo.dirX = dx / d; poo.dirY = dy / d; }
+    if (d > dist) { poo.x += dx / d * dist; poo.y += dy / d * dist; return; }
+    poo.x = wp.x; poo.y = wp.y; dist -= d;
+    if (wp.j) {
+      if (wp.j.type === 'bend') { takeTurn(Object.keys(wp.j.outs)[0]); continue; }
+      if (!pending) { startWait(); return; }
+      resolveJunction();
+      continue;
+    }
+    poo.path.shift();
+    if (wp.ev === 'bonk') { bonk(); return; }
+    if (wp.ev === 'end') { poo.state = 'exit'; trip.irisT = 0; Sound.play('whee'); return; }
+  }
+}
+
+function startWait() {
+  poo.state = 'wait';
+  poo.waitT = 0;
+  poo.speed = 0;
+  ui.left.classList.add('pulse');
+  ui.right.classList.add('pulse');
+  Sound.play('hint');
+  if (!trip.asked) { trip.asked = true; setTimeout(() => Sound.say('Which way?'), 250); }
+}
+
+function bonk() {
+  poo.state = 'bonk';
+  poo.bonkT = BONK_TIME;
+  poo.boostT = 0;
+  if (poo.tp) popTP();
+  trip.shake = 0.3;
+  Sound.play('bonk');
+  Sound.buzz([60, 40, 60]);
+  Sound.say('Oops!');
+}
+
+function popTP() {
+  const tp = poo.tp;
+  if (!tp) return;
+  tp.gone = true;
+  poo.tp = null;
+  poo.clogT = 0;
+  for (let i = 0; i < 18; i++) {
+    const a = Math.random() * Math.PI * 2, v = 30 + Math.random() * 60;
+    parts.push({ x: tp.x, y: tp.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 20, g: 120, life: 0.8, c: i % 3 ? '#ffffff' : '#dfe6ef', w: 2, h: 2 });
+  }
+  Sound.play('pop');
+}
+
+function checkItems() {
+  for (const it of world.items) {
+    if (it.used || it.type === 'sign') continue;
+    const d = Math.hypot(it.x - poo.x, it.y - poo.y);
+    if (it.type === 'water' && d < 13) {
+      it.used = true;
+      if (poo.tp) popTP();
+      poo.boostT = BOOST_TIME;
+      Sound.play('whee');
+      for (let i = 0; i < 14; i++)
+        parts.push({ x: poo.x + (Math.random() - 0.5) * 14, y: poo.y, vx: (Math.random() - 0.5) * 70, vy: -30 - Math.random() * 50, g: 160, life: 0.6, c: i % 2 ? C.water : C.waterLight, w: 1, h: 2 });
+    } else if (it.type === 'tp' && d < 22) {
+      it.used = true;
+      it.pushed = true;
+      poo.tp = it;
+      poo.clogT = CLOG_TIME;
+      poo.boostT = 0;
+      Sound.play('clog');
+      Sound.buzz([25]);
+    }
+  }
+}
+
+function updateTrip(dt) {
+  trip.t += dt;
+  trip.shake = Math.max(0, trip.shake - dt);
+  const p = poo;
+  if (p.state === 'flush') {
+    p.flushT += dt;
+    if (p.flushT > FLUSH_TIME) { p.state = 'ride'; p.rideT = 0; p.speed = 8; }
+  } else if (p.state === 'ride') {
+    p.rideT += dt;
+    if (p.boostT > 0) p.boostT -= dt;
+    if (p.clogT > 0) { p.clogT -= dt; if (p.clogT <= 0) popTP(); }
+    let target = BASE_SPEED;
+    if (p.boostT > 0) target = BASE_SPEED + (BOOST_SPEED - BASE_SPEED) * Math.min(1, p.boostT / 0.8);
+    if (p.clogT > 0) target = CLOG_SPEED;
+    const wp = p.path[0];
+    if (wp && wp.j && wp.j.type === 'T' && !pending) target = Math.min(target, 21 + Math.hypot(wp.x - p.x, wp.y - p.y) * 1.3);
+    if (p.rideT < 1.2) target = Math.min(target, 15 + p.rideT * 82);
+    p.speed += (target - p.speed) * Math.min(1, dt * (p.clogT > 0 ? 12 : 4));
+    moveAlong(p.speed * dt);
+    checkItems();
+    if (p.tp) {
+      p.tp.x = p.x + p.dirX * 22;
+      p.tp.y = p.y + p.dirY * 22;
+      if (Math.random() < dt * 12)
+        parts.push({ x: p.tp.x + (Math.random() - 0.5) * 12, y: p.tp.y - p.dirY * 4, vx: (Math.random() - 0.5) * 20, vy: -p.dirY * 20, g: 30, life: 0.5, c: '#ffffff', w: 2, h: 1 });
+    }
+    if (p.boostT > 0 && Math.random() < dt * 30)
+      parts.push({ x: p.x + (Math.random() - 0.5) * 14, y: p.y - p.dirY * 10, vx: 0, vy: -p.dirY * 40, g: 0, life: 0.25, c: C.waterLight, w: 1, h: 4 });
+  } else if (p.state === 'wait') {
+    p.waitT += dt;
+  } else if (p.state === 'bonk') {
+    p.bonkT -= dt;
+    if (p.bonkT <= 0) { p.state = 'ride'; p.speed = 15; }
+  } else if (p.state === 'exit') {
+    trip.irisT += dt;
+    if (trip.irisT >= IRIS_TIME) startDest();
+  }
+  cam.y += (p.y - H * LOOK - cam.y) * Math.min(1, dt * 4);
+  const frac = Math.max(0, Math.min(1, (p.y - POO_START_Y) / (world.exitY - POO_START_Y)));
+  ui.fill.style.width = (frac * 100).toFixed(1) + '%';
+  ui.trackPoo.style.left = (frac * 100).toFixed(1) + '%';
+}
+
+function updateParts(dt) {
+  for (const q of parts) {
+    q.life -= dt;
+    q.vy += (q.g || 0) * dt;
+    q.x += q.vx * dt;
+    q.y += q.vy * dt;
+  }
+  parts = parts.filter(q => q.life > 0);
+}
+
+/* ======== the holiday spot ======== */
+function startDest() {
+  dest = { d: trip.dest, t: 0, phase: 'open', hatOff: null, hatV: 0, hopT: 0, landT: 0, G: 630 };
+  layoutDest();
+  mode = 'dest';
+  parts = [];
+  ui.hud.hidden = true;
+  ui.left.hidden = ui.right.hidden = true;
+}
+
+// Places the exit pipe and the landing spot for the current screen size; called again after a resize.
+function layoutDest() {
+  const s = dest;
+  s.gy = groundY(H);
+  s.pipeX = Math.max(24, Math.round(W * 0.15));
+  s.mouthX = s.pipeX + 12 + PIPE_R;
+  s.mouthY = s.gy - 34;
+  s.landX = Math.max(s.mouthX + 50, Math.round(W * 0.5));
+  s.landY = s.gy - 10;
+  if (s.phase === 'open' || s.phase === 'fly') {
+    const x0 = s.mouthX - 8, vy = -225;
+    const tf = (-vy + Math.sqrt(vy * vy + 2 * s.G * (s.landY - s.mouthY))) / s.G;
+    Object.assign(s, { phase: 'open', x: x0, y: s.mouthY, vy, vx: (s.landX - x0) / tf });
+  } else {
+    s.x = s.landX;
+    s.y = s.landY;
+  }
+}
+
+function updateDest(dt) {
+  const s = dest;
+  s.t += dt;
+  if (s.phase === 'open') {
+    if (s.t > IRIS_TIME) { s.phase = 'fly'; Sound.play('launch'); }
+  } else if (s.phase === 'fly') {
+    s.x += s.vx * dt; s.vy += s.G * dt; s.y += s.vy * dt;
+    if (s.y >= s.landY) {
+      s.y = s.landY; s.x = s.landX; s.phase = 'land'; s.landT = 0;
+      Sound.play('land'); Sound.buzz([40]);
+      for (let i = 0; i < 12; i++)
+        parts.push({ x: s.x + (Math.random() - 0.5) * 20, y: s.gy - 1, vx: (Math.random() - 0.5) * 60, vy: -Math.random() * 40, g: 120, life: 0.5, c: s.d.ground, w: 2, h: 1 });
+    }
+  } else if (s.phase === 'land') {
+    s.landT += dt;
+    if (s.landT > 0.35) { s.phase = 'hat'; s.hatOff = -s.landY - 20; s.hatV = 0; }
+  } else if (s.phase === 'hat') {
+    s.hatV += 600 * dt; s.hatOff += s.hatV * dt;
+    if (s.hatOff >= 0) {
+      s.hatOff = 0; s.phase = 'party'; s.landT = 0; s.hopT = 0;
+      Sound.play('ding');
+      setTimeout(() => { if (dest === s) Sound.play('fanfare'); }, 250);
+      setTimeout(() => { if (dest === s) Sound.say(s.d.say); }, 900);
+      if (!visited.includes(s.d.id)) { visited.push(s.d.id); store.set('visited', visited); }
+    }
+  } else if (s.phase === 'party') {
+    s.landT += dt; s.hopT += dt;
+    if (s.landT < 3.5 && Math.random() < dt * 40) {
+      const cols = ['#ff595e', '#ffca3a', '#8ac926', '#1982c4', '#6a4c93', '#ff8fab'];
+      parts.push({ x: Math.random() * W, y: -4, vx: (Math.random() - 0.5) * 20, vy: 20 + Math.random() * 30, g: 10, life: 4, c: cols[Math.floor(Math.random() * 6)], w: 2, h: 2, sway: Math.random() * 6 });
+    }
+    if (s.landT > 0.9 && ui.done.hidden) {
+      ui.doneTitle.textContent = `${s.d.emoji} ${s.d.name}!`;
+      ui.done.hidden = false;
+    }
+  }
+}
+
+/* ======== rendering ======== */
+// Four soil layers with wavy borders. The top one is criss-crossed by old pipes that are only decoration; the deeper
+// ones hide things to spot: water pockets, dinosaur bones, crystal caves, fossils.
+const LAYERS = [
+  { base: '#7a4e33', specks: ['#8e5f3f', '#62402a', '#9a6a48'], line: '#4a2e1c', finds: ['worm', 'pebbles', 'rock', 'pebbles'], rare: ['mole', 'toycar'] },
+  { base: '#9a5636', specks: ['#b0673f', '#7e4329', '#c27a4c'], stripes: '#874a2d', line: '#5a2e1a', finds: ['bone', 'pebbles', 'worm', 'pebbles', 'fossil', 'bone'], rare: ['boot', 'pot'] },
+  { base: '#6e6258', specks: ['#857868', '#564c44', '#9a8c7a', '#4a423b'], gravel: true, line: '#3a322c', finds: ['rock', 'pebbles', 'bone', 'rock', 'pebbles', 'fossil'], rare: ['dinoskull'] },
+  { base: '#3f3550', specks: ['#4f4462', '#2f2840', '#5d5174'], line: '#221c2e', finds: ['crystal', 'rock', 'crystal', 'pebbles', 'crystal', 'fossil'], rare: ['chest', 'mushrooms'] },
+];
+function makeTile(L, seed) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 48;
+  const t = c.getContext('2d');
+  R(t, L.base, 0, 0, 48, 48);
+  if (L.stripes) for (let y = 4; y < 48; y += 12) for (let x = 0; x < 48; x++) R(t, L.stripes, x, y + Math.round(Math.sin(x / 48 * Math.PI * 2) * 1.5), 1, 2);
+  const n = L.gravel ? 150 : 90;
+  for (let i = 0; i < n; i++) {
+    const big = L.gravel ? i % 3 === 0 : i % 4 === 0;
+    R(t, L.specks[i % L.specks.length], Math.floor(hash(i, seed) * 47), Math.floor(hash(i, seed + 1) * 47), big ? 2 : 1, big ? 2 : 1);
+  }
+  return c;
+}
+function layerTops() {
+  const e = world ? world.exitY : 3000;
+  return [FLOOR_H, e * 0.27, e * 0.52, e * 0.77];
+}
+// The wavy top edge of layer k at world x.
+function layerEdge(tops, k, x) {
+  if (k === 0) return FLOOR_H;
+  return Math.round(tops[k] + Math.sin(x * 0.045 + k * 1.7) * 7 + Math.sin(x * 0.12 + k) * 3);
+}
+function layerAt(tops, x, y) {
+  let k = 0;
+  while (k < 3 && y >= layerEdge(tops, k + 1, x)) k++;
+  return k;
+}
+
+function drawUnderground(top, bot, ox, oy) {
+  const x0 = Math.floor(-ox / 2) * 2, x1 = W - ox, tops = layerTops();
+  for (let k = 0; k < 4; k++) {
+    if ((k < 3 && tops[k + 1] + 12 < top) || tops[k] - 12 > bot) continue;
+    g.save();
+    g.beginPath();
+    for (let x = x0; x < x1; x += 2) {
+      const ya = Math.max(top, layerEdge(tops, k, x)), yb = k < 3 ? Math.min(bot, layerEdge(tops, k + 1, x)) : bot;
+      if (yb > ya) g.rect(x + ox, ya + oy, 2, yb - ya);
+    }
+    g.clip();
+    const ya = Math.max(top, tops[k] - 12), yb = k < 3 ? Math.min(bot, tops[k + 1] + 12) : bot;
+    for (let y = Math.floor(ya / 48) * 48; y < yb; y += 48)
+      for (let x = Math.floor(x0 / 48) * 48; x < x1; x += 48) g.drawImage(dirtTiles[k], x + ox, y + oy);
+    g.restore();
+    if (k > 0) for (let x = x0; x < x1; x += 2) R(g, LAYERS[k].line, x + ox, layerEdge(tops, k, x) + oy, 2, 2);
+  }
+  if (top < FLOOR_H + 70) drawRoots(x0, x1, ox, oy);
+  if (top < tops[1]) drawPipeMaze(Math.max(top, FLOOR_H + 24), Math.min(bot, tops[1] - 30), x0, x1, ox, oy);
+  drawBigFinds(top, bot, x0, x1, ox, oy, tops);
+  drawFinds(top, bot, x0, x1, ox, oy, tops);
+}
+
+function drawRoots(x0, x1, ox, oy) {
+  for (let ix = Math.floor(x0 / 14); ix * 14 < x1; ix++) {
+    if (hash(ix, 77) > 0.45) continue;
+    const len = 8 + Math.floor(hash(ix, 78) * 40);
+    let x = ix * 14 + Math.floor(hash(ix, 79) * 10);
+    for (let y = 0; y < len; y++) {
+      if (y % 5 === 4) x += hash(ix, y) < 0.5 ? -1 : 1;
+      R(g, y < len - 6 ? '#5a3b22' : '#7a5636', x + ox, FLOOR_H + y + oy, y < len / 2 ? 2 : 1, 1);
+      if (y % 9 === 6) R(g, '#5a3b22', x + (y % 18 ? 1 : -3) + ox, FLOOR_H + y + oy, 3, 1);
+    }
+  }
+}
+
+// Old copper and steel pipes on a 40px grid, behind the real ones. Built from hashes of world positions, so the
+// maze is the same every frame and never ends sideways.
+function drawPipeMaze(ya, yb, x0, x1, ox, oy) {
+  if (yb <= ya) return;
+  const G = 40, segs = [], nodes = [];
+  const iy0 = Math.floor((ya - 20) / G), iy1 = Math.ceil((yb + 20) / G), ix0 = Math.floor(x0 / G) - 1, ix1 = Math.ceil(x1 / G) + 1;
+  const inside = iy => iy * G + 20 > ya - 4 && iy * G + 20 < yb + 4;
+  for (let iy = iy0; iy <= iy1; iy++) for (let ix = ix0; ix <= ix1; ix++) {
+    if (!inside(iy)) continue;
+    const x = ix * G + 20, y = iy * G + 20, steel = hash(ix >> 2, (iy >> 2) + 900) < 0.4;
+    let deg = 0;
+    if (hash(ix, iy + 1000) < 0.42) { segs.push({ x1: x, y1: y, x2: x + G, y2: y, steel, k: hash(ix, iy + 1500) }); deg++; }
+    if (inside(iy + 1) && hash(ix, iy + 2000) < 0.36) { segs.push({ x1: x, y1: y, x2: x, y2: y + G, steel, k: hash(ix, iy + 2500) }); deg++; }
+    if (hash(ix - 1, iy + 1000) < 0.42) deg++;
+    if (inside(iy - 1) && hash(ix, iy - 1 + 2000) < 0.36) deg++;
+    if (deg) nodes.push({ x, y, steel, deg });
+  }
+  const col = s => s ? ['#2b2f36', '#7d8792', '#b9c2cc', '#5d6670'] : ['#3a2414', '#b2683a', '#e3a06a', '#83461f'];
+  for (const s of segs) R(g, col(s.steel)[0], s.x1 - 5 + ox, s.y1 - 5 + oy, s.x2 - s.x1 + 10, s.y2 - s.y1 + 10);
+  for (const s of segs) {
+    const [, body, light, dark] = col(s.steel);
+    R(g, body, s.x1 - 4 + ox, s.y1 - 4 + oy, s.x2 - s.x1 + 8, s.y2 - s.y1 + 8);
+    if (s.y1 === s.y2) { R(g, light, s.x1 + ox, s.y1 - 3 + oy, s.x2 - s.x1, 2); R(g, dark, s.x1 + ox, s.y1 + 2 + oy, s.x2 - s.x1, 2); }
+    else { R(g, light, s.x1 - 3 + ox, s.y1 + oy, 2, s.y2 - s.y1); R(g, dark, s.x1 + 2 + ox, s.y1 + oy, 2, s.y2 - s.y1); }
+  }
+  for (const n of nodes) {
+    const [ink, body, light] = col(n.steel);
+    R(g, ink, n.x - 7 + ox, n.y - 7 + oy, 14, 14);
+    R(g, body, n.x - 6 + ox, n.y - 6 + oy, 12, 12);
+    R(g, light, n.x - 6 + ox, n.y - 6 + oy, 12, 1);
+    R(g, ink, n.x - 4 + ox, n.y - 4 + oy, 1, 1); R(g, ink, n.x + 3 + ox, n.y + 3 + oy, 1, 1);
+    if (n.deg === 1 && Math.floor(T * 1.3 + n.x) % 4 === 0) R(g, C.water, n.x + ox, n.y + 8 + ((T * 30) % 14) + oy, 1, 2);
+  }
+  for (const s of segs) {
+    if (s.k > 0.16) continue;
+    const mx = (s.x1 + s.x2) / 2 + ox, my = (s.y1 + s.y2) / 2 + oy;
+    if (s.k < 0.09) {   // a red valve wheel
+      R(g, '#5a1410', mx - 4, my - 4, 9, 9);
+      R(g, '#e2493a', mx - 3, my - 3, 7, 7);
+      R(g, '#5a1410', mx - 1, my - 1, 3, 3);
+      R(g, '#ff8a7a', mx - 3, my - 3, 3, 1);
+    } else {            // a pressure gauge
+      ell(g, '#2b2f36', mx + 0.5, my + 0.5, 5, 5);
+      ell(g, '#f4f4f4', mx + 0.5, my + 0.5, 4, 4);
+      const a = -2.2 + Math.sin(T * 2 + s.k * 50) * 0.6;
+      for (let d = 0; d < 3; d++) R(g, '#e2493a', mx + Math.round(Math.cos(a) * d), my + Math.round(Math.sin(a) * d), 1, 1);
+    }
+  }
+}
+
+// One big thing per 150px cell, now and then, depending on the layer: a water pocket, dinosaur bones, a crystal cave.
+function drawBigFinds(top, bot, x0, x1, ox, oy, tops) {
+  const G = 150;
+  for (let iy = Math.floor((top - 60) / G); iy * G < bot + 60; iy++) for (let ix = Math.floor(x0 / G) - 1; ix * G < x1; ix++) {
+    if (hash(ix + 40, iy + 40) > 0.3) continue;
+    const x = ix * G + 30 + Math.floor(hash(ix, iy + 41) * 90) + ox, wy = iy * G + 40 + Math.floor(hash(ix, iy + 42) * 70);
+    const k = layerAt(tops, x - ox, wy), y = wy + oy;
+    if (wy < tops[1] + 40 || (k < 3 && wy > layerEdge(tops, k + 1, x - ox) - 40)) continue;
+    if (k === 1) {
+      ell(g, '#25507e', x, y, 23, 11);
+      ell(g, '#3d7fc4', x, y, 22, 10);
+      ell(g, '#5aa3e6', x, y - 4, 18, 4);
+      R(g, '#d6efff', x - 12, y - 6, 5, 1);
+      R(g, '#d6efff', x + 4 + Math.round(Math.sin(T * 2) * 3), y + 2, 3, 1);
+    } else if (k === 2) {
+      const bone = '#efe6cf', dark = '#b8a98a';
+      for (let i = 0; i < 26; i++) R(g, bone, x - 20 + i * 2, y + Math.round(Math.sin(i * 0.35) * 2), 2, 2);
+      for (let i = 0; i < 5; i++) {
+        const rx = x - 12 + i * 6, ry = y + Math.round(Math.sin((rx - x + 20) / 2 * 0.35) * 2);
+        for (let d = 2; d < 11 - i; d++) R(g, d % 3 ? bone : dark, rx + (d > 6 ? 1 : 0), ry + d, 1, 1);
+      }
+      drawProp(g, IMG.dinoskull, x + 42, y + 13);
+      for (let i = 0; i < 6; i++) R(g, bone, x - 22 - i * 2, y + 1 + Math.round(i * 0.6), 2, 1);
+    } else if (k === 3) {
+      ell(g, '#120e1a', x, y, 27, 15);
+      ell(g, '#1c1626', x, y + 1, 25, 13);
+      for (let i = 0; i < 7; i++) {
+        const sx = x - 20 + i * 7, len = 3 + Math.floor(hash(ix + i, iy) * 6);
+        for (let d = 0; d < len; d++) R(g, '#3f3550', sx - Math.floor((len - d) / 3), y - 12 + d, 1 + Math.floor((len - d) / 2), 1);
+      }
+      const glow = 0.25 + Math.sin(T * 2.5 + ix) * 0.12;
+      g.globalAlpha = glow;
+      ell(g, '#7fe9ff', x + 4, y + 4, 14, 8);
+      g.globalAlpha = 1;
+      drawProp(g, IMG.crystal, x + 4, y + 13);
+    }
+  }
+}
+
+// Small things in the dirt: worms and pebbles near the top, bones and fossils lower down, crystals at the bottom.
+// Now and then a rare find instead: a mole, a lost toy car, an old boot, a clay pot, a dinosaur skull, treasure.
+function drawFinds(top, bot, x0, x1, ox, oy, tops) {
+  const G = 40;
+  for (let iy = Math.floor(Math.max(FLOOR_H + 30, top - 30) / G); iy * G < bot + 30; iy++) {
+    for (let ix = Math.floor(x0 / G) - 1; ix * G < x1; ix++) {
+      const rare = hash(ix + 11, iy + 3000) < 0.008;
+      if (!rare && hash(ix, iy) > 0.14) continue;
+      const x = ix * G + 10 + Math.floor(hash(ix + 300, iy) * 20), y = iy * G + 10 + Math.floor(hash(ix, iy + 500) * 20);
+      const k = layerAt(tops, x, y), list = rare ? LAYERS[k].rare : LAYERS[k].finds;
+      const name = list[Math.floor(hash(ix + 7, iy + 9) * list.length)];
+      if (name === 'chest' && Math.floor(T * 3 + ix) % 5 === 0) R(g, '#fff6c8', x + ox - 6 + (ix % 3) * 5, y - 22 + oy, 1, 1);
+      if (name === 'crystal' || name === 'mushrooms') {
+        g.globalAlpha = 0.2 + Math.sin(T * 3 + ix * 1.7 + iy) * 0.1;
+        ell(g, '#7fe9ff', x + ox, y - 10 + oy, 15, 12);
+        g.globalAlpha = 1;
+      }
+      drawProp(g, IMG[name], x + ox, y + oy, 1, hash(ix, iy + 7) < 0.5);
+    }
+  }
+}
+
+function drawBathroom(top, ox, oy) {
+  const yA = Math.floor(top);
+  if (yA >= 0) return;
+  R(g, C.wall, 0, yA + oy, W, -66 - yA);
+  R(g, C.wallLow, 0, -66 + oy, W, 66);
+  for (let y = Math.ceil(yA / 16) * 16; y < 0; y += 16) R(g, C.wallLine, 0, y + oy, W, 1);
+  for (let x = Math.floor(-ox / 16) * 16; x < W - ox; x += 16) R(g, C.wallLine, x + ox, yA + oy, 1, -yA);
+  R(g, C.wallBand, 0, -69 + oy, W, 5);
+  drawProp(g, IMG.picture, CX + 50 + ox, -120 + oy);
+  drawProp(g, IMG.towel, CX - 82 + ox, -84 + oy);
+  R(g, '#9aa4b2', CX + 50 + ox, -50 + oy, 14, 2);
+  R(g, '#6b7480', CX + 50 + ox, -50 + oy, 2, 6);
+  drawProp(g, IMG.tproll, CX + 58 + ox, -32 + oy);
+}
+
+function drawFloor(ox, oy) {
+  for (let x = Math.floor(-ox / 12) * 12; x < W - ox; x += 12) R(g, (x / 12) % 2 ? C.floorA : C.floorB, x + ox, oy, 12, 12);
+  R(g, '#a88d62', 0, oy, W, 1);
+  R(g, C.concrete, 0, 12 + oy, W, FLOOR_H - 12);
+  R(g, '#6f6a64', 0, FLOOR_H - 1 + oy, W, 1);
+  drawProp(g, IMG.duck, CX - 78 + ox, 2 + oy, 1, true);
+  drawProp(g, IMG.plant, CX + 80 + ox, 2 + oy);
+}
+
+function drawPipes(segs, ox, oy, t) {
+  const RR = PIPE_R, r = PIPE_IN;
+  const box = (s, e, c) => R(g, c, s.x1 - e + ox, s.y1 - e + oy, s.x2 - s.x1 + 2 * e, s.y2 - s.y1 + 2 * e);
+  for (const s of segs) box(s, RR, C.pipeInk);
+  for (const s of segs) box(s, RR - 1, C.pipe);
+  for (const s of segs) {
+    if (s.x1 === s.x2) {
+      R(g, C.pipeLight, s.x1 - RR + 2 + ox, s.y1 + oy, 2, s.y2 - s.y1);
+      R(g, C.pipeLight, s.x1 - RR + 4 + ox, s.y1 + oy, 1, s.y2 - s.y1);
+      R(g, C.pipeDark, s.x1 + RR - 4 + ox, s.y1 + oy, 2, s.y2 - s.y1);
+    } else {
+      R(g, C.pipeLight, s.x1 + ox, s.y1 - RR + 2 + oy, s.x2 - s.x1, 2);
+      R(g, C.pipeLight, s.x1 + ox, s.y1 - RR + 4 + oy, s.x2 - s.x1, 1);
+      R(g, C.pipeDark, s.x1 + ox, s.y1 + RR - 4 + oy, s.x2 - s.x1, 2);
+    }
+  }
+  for (const s of segs) {
+    const vert = s.x1 === s.x2, len = vert ? s.y2 - s.y1 : s.x2 - s.x1;
+    for (let k = 33; k < len - 21; k += 66) {
+      if (vert) {
+        const x = s.x1 + ox, y = s.y1 + k + oy;
+        R(g, C.pipeInk, x - RR - 2, y - 3, RR * 2 + 4, 7);
+        R(g, C.pipe, x - RR - 1, y - 2, RR * 2 + 2, 5);
+        R(g, C.pipeLight, x - RR - 1, y - 2, RR * 2 + 2, 1);
+        R(g, C.pipeDark, x - RR - 1, y + 2, RR * 2 + 2, 1);
+        R(g, C.pipeInk, x - RR + 1, y, 1, 1); R(g, C.pipeInk, x + RR - 2, y, 1, 1);
+      } else {
+        const x = s.x1 + k + ox, y = s.y1 + oy;
+        R(g, C.pipeInk, x - 3, y - RR - 2, 7, RR * 2 + 4);
+        R(g, C.pipe, x - 2, y - RR - 1, 5, RR * 2 + 2);
+        R(g, C.pipeLight, x - 2, y - RR - 1, 1, RR * 2 + 2);
+        R(g, C.pipeDark, x + 2, y - RR - 1, 1, RR * 2 + 2);
+        R(g, C.pipeInk, x, y - RR + 1, 1, 1); R(g, C.pipeInk, x, y + RR - 2, 1, 1);
+      }
+    }
+  }
+  for (const s of segs) if (!s.water) box(s, r, C.inside);
+  for (const s of segs) if (s.water) {
+    box(s, r, C.water);
+    const h = s.y2 - s.y1 + 2 * r;
+    for (let i = 0; i < Math.ceil(h / 10); i++) {
+      const x = s.x1 - r + 2 + ((i * 7) % (2 * r - 4));
+      const y = (t * 110 + i * 37) % h;
+      R(g, C.waterLight, x + ox, s.y1 - r + y + oy, 1, Math.min(5, h - y));
+    }
+  }
+}
+
+function drawExitGlow(ox, oy) {
+  const y = world.exitY;
+  const cols = ['#33474a', '#56685a', '#8f9a68', '#cdc879', '#fff0a0', '#ffffff'];
+  cols.forEach((c, i) => R(g, c, CX - PIPE_IN + ox, y - 54 + i * 9 + oy, PIPE_IN * 2, i === 5 ? 9 + PIPE_IN : 9));
+  for (let i = 0; i < 4; i++) {
+    const ph = (T * 0.8 + i / 4) % 1;
+    R(g, '#ffffff', CX - 6 + i * 4 + ox, y + 4 - ph * 30 + oy, 1, 1);
+  }
+}
+
+function pooLook(p) {
+  let eyes = (T % 3.2) < 0.13 ? 'blink' : 'open', mouth = 'smile', look = 0, sq = 0, flip = false;
+  const wob = [0, 0.25, 0, -0.25][Math.floor(T * 8) % 4];
+  if (p.state === 'idle') { look = [0, -1, 0, 1][Math.floor(T / 1.5) % 4]; sq = [0, 0.25][Math.floor(T * 2) % 2]; }
+  else if (p.state === 'flush' || (p.state === 'ride' && p.rideT < 0.6)) { flip = Math.floor(T * 10) % 2 === 0; eyes = 'wide'; mouth = 'o'; }
+  else if (p.state === 'bonk') { eyes = 'dizzy'; mouth = 'wavy'; sq = p.bonkT > BONK_TIME - 0.2 ? 0.5 : 0; }
+  else if (p.clogT > 0) { eyes = 'squint'; mouth = 'grit'; sq = Math.floor(T * 16) % 2 ? 0.25 : 0; }
+  else if (p.boostT > 0) { eyes = 'wide'; mouth = 'open'; sq = -0.5; }
+  else if (p.state === 'wait') { look = Math.sin(T * 3) > 0 ? 1 : -1; }
+  else { look = pending === 'L' ? -1 : pending === 'R' ? 1 : 0; sq = wob; }
+  return { spr: pooSprite(sq, eyes, mouth, look), flip };
+}
+
+function drawHints(ox, oy) {
+  const next = poo.path.find(w => w.j && w.j.type === 'T');
+  if (!next || !(poo.state === 'ride' || poo.state === 'wait' || poo.state === 'flush' || poo.state === 'bonk')) return;
+  const y = next.j.y + oy, nx = laneX(next.j.lane);
+  if (poo.state === 'wait') {
+    const b = Math.round(Math.sin(T * 8) * 2);
+    drawCentered(g, SPR.arrowL, nx - 25 - b + ox, y);
+    drawCentered(g, SPR.arrowR, nx + 25 + b + ox, y);
+  } else if (pending) {
+    drawCentered(g, pending === 'L' ? SPR.arrowL : SPR.arrowR, nx + (pending === 'L' ? -25 : 25) + ox, y);
+  }
+}
+
+function renderTrip() {
+  const sh = trip && trip.shake > 0 ? Math.round((Math.random() - 0.5) * 4) : 0;
+  const ox = offX + sh, oy = Math.round(-cam.y);
+  const top = cam.y - 4, bot = cam.y + H + 4;
+  R(g, '#2a1a10', 0, 0, W, H);
+  drawUnderground(top, bot, ox, oy);
+  drawBathroom(top, ox, oy);
+  if (world) {
+    const segs = world.segs.filter(s => s.y2 + 30 > top && s.y1 - 30 < bot);
+    drawPipes(segs, ox, oy, T);
+    if (world.exitY - 40 < bot) drawExitGlow(ox, oy);
+    for (const it of world.items) {
+      if (it.y < top - 20 || it.y > bot + 20) continue;
+      if (it.type === 'sign') drawProp(g, IMG.sign, it.x + ox, it.y + 13 + oy);
+      else if (it.type === 'tp' && !it.gone && !it.pushed) drawProp(g, IMG.tproll, it.x + ox, it.y + 9 + oy);
+      else if (it.type === 'water') drawProp(g, IMG.splash, it.x + ox, it.y + 6 + oy + (Math.floor(T * 4 + it.y) % 2));
+    }
+    drawHints(ox, oy);
+  }
+  const nearTop = top < FLOOR_H + 40;
+  if (nearTop) drawSprite(g, toilet.full, TOILET_X + ox, TOILET_Y + oy);
+  if (nearTop && poo.state === 'flush') {
+    for (let i = 0; i < 10; i++) {
+      const a = T * 9 + i * 0.63;
+      R(g, i % 2 ? '#ffffff' : '#3d98d6', CX + Math.cos(a) * 19 + ox, -35 + Math.sin(a) * 4 + oy, 2, 1);
+    }
+  }
+  const look = pooLook(poo);
+  const bob = poo.state === 'idle' ? (Math.floor(T * 2) % 2) : 0;
+  drawPoo(look.spr, poo.x + ox, poo.y + oy + bob, look.flip);
+  if (poo.tp && !poo.tp.gone) drawProp(g, IMG.tproll, poo.tp.x + ox + (Math.random() < 0.5 ? -1 : 1), poo.tp.y + 9 + oy);
+  if (nearTop) { drawFloor(ox, oy); drawSprite(g, toilet.front, TOILET_X + ox, TOILET_Y + oy); }
+  if (poo.state === 'bonk') {
+    for (let i = 0; i < 3; i++) {
+      const a = T * 6 + i * 2.1;
+      drawCentered(g, SPR.star, poo.x + Math.cos(a) * 11 + ox, poo.y - 19 + Math.sin(a) * 3 + oy);
+    }
+  }
+  for (const q of parts) R(g, q.c, q.x + ox, q.y + oy, q.w, q.h);
+  if (poo.state === 'exit') iris(poo.x + ox, poo.y + oy, Math.hypot(W, H) * (1 - trip.irisT / IRIS_TIME));
+}
+
+let bgCache = null;
+function sceneBg(d) {
+  const key = d.id + W + 'x' + H;
+  if (!bgCache || bgCache.key !== key) {
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    d.bg(c.getContext('2d'), W, H);
+    bgCache = { key, c };
+  }
+  return bgCache.c;
+}
+
+function renderDest() {
+  const s = dest;
+  g.drawImage(sceneBg(s.d), 0, 0);
+  s.d.fx(g, W, H, T);
+  const segs = [seg(s.pipeX, s.mouthY, s.pipeX, s.gy + 6), seg(s.pipeX, s.mouthY, s.pipeX + 12, s.mouthY)];
+  drawPipes(segs, 0, 0, T);
+  const mx = s.pipeX + 12 + PIPE_R;
+  R(g, C.pipeInk, mx - 4, s.mouthY - PIPE_R - 2, 5, PIPE_R * 2 + 4);
+  R(g, C.pipe, mx - 3, s.mouthY - PIPE_R - 1, 3, PIPE_R * 2 + 2);
+  R(g, C.inside, mx - 4, s.mouthY - PIPE_IN, 5, PIPE_IN * 2);
+  ell(g, s.d.ground, s.pipeX, s.gy + 4, PIPE_R + 6, 4);
+  let eyes = 'happy', mouth = 'open', sq = 0, flip = false, hop = 0;
+  if (s.phase === 'open') { eyes = 'wide'; mouth = 'o'; }
+  else if (s.phase === 'fly') { eyes = 'wide'; mouth = 'open'; flip = Math.floor(T * 10) % 2 === 0; sq = -0.5; }
+  else if (s.phase === 'land') sq = s.landT < 0.15 ? 0.5 : 0.25;
+  else if (s.phase === 'party') {
+    const ph = s.hopT % 1.6;
+    if (ph < 0.4) hop = Math.round(Math.sin(ph / 0.4 * Math.PI) * 7);
+    else if (ph < 0.5) sq = 0.5;
+    mouth = ph < 0.5 ? 'open' : 'smile';
+    if (s.d.hat !== 'shades' && (T % 2.6) < 0.13) eyes = 'blink';
+  }
+  if (s.phase !== 'open') {
+    const spr = pooSprite(sq, eyes, mouth, 0);
+    drawPoo(spr, s.x, s.y - hop, flip);
+    if (s.hatOff !== null) {
+      hatCache[s.d.hat] = hatCache[s.d.hat] || hatSprite(s.d.hat);
+      const sink = Math.round((POO_BODY.y + POO_BODY.h - HATS[s.d.hat].anchor) * sq * 0.24);
+      drawSprite(g, hatCache[s.d.hat], Math.round(s.x) - POO_AX + HAT_DX, Math.round(s.y - hop + s.hatOff) - POO_AY + HAT_DY + sink);
+    }
+  }
+  for (const q of parts) R(g, q.c, q.x + (q.sway ? Math.sin(T * 3 + q.sway) * 2 : 0), q.y, q.w, q.h);
+  if (s.phase === 'open') iris(s.mouthX, s.mouthY, Math.hypot(W, H) * (s.t / IRIS_TIME));
+}
+
+// Black screen with a round hole, closing or opening like an old cartoon.
+function iris(cx, cy, r) {
+  g.fillStyle = C.night;
+  for (let y = 0; y < H; y++) {
+    const dy = y + 0.5 - cy;
+    if (Math.abs(dy) >= r) { g.fillRect(0, y, W, 1); continue; }
+    const hw = Math.sqrt(r * r - dy * dy);
+    const a = Math.round(cx - hw), b = Math.round(cx + hw);
+    if (a > 0) g.fillRect(0, y, a, 1);
+    if (b < W) g.fillRect(b, y, W - b, 1);
+  }
+}
+
+/* ======== UI ======== */
+const $ = id => document.getElementById(id);
+const ui = {
+  menu: $('menu'), cards: $('cards'), done: $('done'), doneTitle: $('doneTitle'), again: $('againBtn'),
+  hud: $('hud'), home: $('homeBtn'), fill: $('trackFill'), trackPoo: $('trackPoo'), goal: $('trackGoal'),
+  sounds: document.querySelectorAll('.sound'), left: $('leftBtn'), right: $('rightBtn'),
+};
+
+function renderCards() {
+  ui.cards.innerHTML = '';
+  const add = (d, inner) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'card';
+    b.append(inner);
+    const label = document.createElement('span');
+    label.className = 'label';
+    label.textContent = d ? d.name : 'Surprise!';
+    b.append(label);
+    if (d && visited.includes(d.id)) {
+      const st = document.createElement('span');
+      st.className = 'stamp';
+      st.textContent = '✔';
+      st.setAttribute('aria-label', 'been there');
+      b.append(st);
+    }
+    b.addEventListener('click', () => {
+      Sound.unlock();
+      let pick = d;
+      if (!pick) {
+        const fresh = DESTS.filter(x => !visited.includes(x.id));
+        const pool = fresh.length ? fresh : DESTS;
+        pick = pool[Math.floor(Math.random() * pool.length)];
+      }
+      startTrip(pick);
+    });
+    ui.cards.append(b);
+  };
+  for (const d of DESTS) {
+    const c = document.createElement('canvas');
+    c.width = 120; c.height = 76;
+    const cg = c.getContext('2d');
+    cg.imageSmoothingEnabled = false;
+    d.bg(cg, 120, 76);
+    d.fx(cg, 120, 76, 2);
+    c.setAttribute('aria-hidden', 'true');
+    add(d, c);
+  }
+  const m = document.createElement('div');
+  m.className = 'mystery';
+  m.textContent = '?';
+  m.setAttribute('aria-hidden', 'true');
+  add(null, m);
+}
+
+function setSoundIcon() { ui.sounds.forEach(b => { b.textContent = Sound.isMuted() ? '🔇' : '🔊'; }); }
+
+ui.sounds.forEach(b => b.addEventListener('click', () => { Sound.unlock(); Sound.toggle(); setSoundIcon(); }));
+ui.home.addEventListener('click', () => { Sound.play('tap'); toMenu(); });
+ui.again.addEventListener('click', () => { Sound.play('tap'); toMenu(); });
+ui.left.addEventListener('pointerdown', e => { e.preventDefault(); Sound.unlock(); choose('L'); });
+ui.right.addEventListener('pointerdown', e => { e.preventDefault(); Sound.unlock(); choose('R'); });
+canvas.addEventListener('pointerdown', e => {
+  Sound.unlock();
+  if (mode === 'trip') choose(e.clientX < innerWidth / 2 ? 'L' : 'R');
+});
+addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft' || e.key === 'a') { Sound.unlock(); choose('L'); }
+  else if (e.key === 'ArrowRight' || e.key === 'd') { Sound.unlock(); choose('R'); }
+});
+addEventListener('pointerdown', () => Sound.unlock(), { capture: true, once: true });
+
+function resize() {
+  if (innerWidth < 1 || innerHeight < 1) return;   // hidden or minimised: keep the last size
+  const dpr = window.devicePixelRatio || 1;
+  const devW = innerWidth * dpr, devH = innerHeight * dpr;
+  pxScale = Math.max(1, Math.floor(Math.min(devW / FIELD_W, devH / MIN_VIEW_H)));
+  W = Math.ceil(devW / pxScale);
+  H = Math.ceil(devH / pxScale);
+  canvas.width = W;
+  canvas.height = H;
+  canvas.style.width = (W * pxScale / dpr) + 'px';
+  canvas.style.height = (H * pxScale / dpr) + 'px';
+  offX = Math.floor((W - FIELD_W) / 2);
+  g.imageSmoothingEnabled = false;
+  if (mode === 'menu') cam.y = -(H - 24);
+  if (mode === 'dest') layoutDest();
+}
+addEventListener('resize', resize);
+
+/* ======== main loop ======== */
+let last = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  T += dt;
+  if (mode === 'trip') updateTrip(dt);
+  else if (mode === 'dest') updateDest(dt);
+  else cam.y = -(H - 24);
+  updateParts(dt);
+  if (mode === 'dest') renderDest(); else renderTrip();
+}
+
+function start() {
+  buildSprites();
+  toilet = buildToilet();
+  dirtTiles = LAYERS.map((L, i) => makeTile(L, 40 + i * 10));
+  const arrowImg = (spr) => { const i = document.createElement('img'); i.src = spr.toDataURL(); i.alt = ''; return i; };
+  ui.left.append(arrowImg(SPR.arrowL));
+  ui.right.append(arrowImg(SPR.arrowR));
+  // A page opened straight from disk can't export a canvas that drew poo.png, so fall back to the plain body.
+  try { ui.trackPoo.src = pooSprite(0, 'open', 'smile', 0).toDataURL(); } catch { ui.trackPoo.src = IMG.poo.src; }
+  setSoundIcon();
+  resize();
+  toMenu();
+  requestAnimationFrame(frame);
+}
+loadAssets().then(start, err => { document.body.textContent = 'Could not load the pictures: ' + err.message; });
+</script>
+</body>
+</html>
