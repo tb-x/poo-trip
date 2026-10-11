@@ -18,6 +18,12 @@ Nothing ever goes badly: a wrong turn only costs a couple of seconds.
 
 The poo, the props and the underground finds are small pixel-art pictures made with [PixelLab](https://pixellab.ai) and kept in `assets/`. Everything else is drawn by the game's own code: the pipes, the toilet, the soil, the holiday scenes, the poo's faces and its hats. Sounds are made in the browser too, and a voice says "Which way?" at the first junction and "Welcome to the beach!" on arrival. On an iPhone, the silent switch mutes them.
 
+## Play offline (add to Home Screen)
+
+On iPhone or iPad, open the game in Safari, tap **Share → Add to Home Screen**, then open it once from the new icon while online. After that it starts full screen and works without internet. Changes arrive on their own: the next online launch downloads them and the one after shows them.
+
+(How: `manifest.webmanifest` gives the icon and full-screen mode; `sw.js`, a service worker, keeps a copy of every file the game uses, including the font and the pictures. The icons `icon-180.png` and `icon-512.png` are rendered from `icon.svg` in headless Chrome.)
+
 ## Running locally
 
 It is an `index.html` plus the pictures in `assets/`, with no build step. Serve the folder over HTTP, for example:

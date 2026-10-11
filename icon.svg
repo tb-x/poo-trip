@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" shape-rendering="crispEdges">
+  <!-- holiday sky -->
+  <rect width="180" height="180" fill="#6cc6f0"/>
+  <rect y="70" width="180" height="40" fill="#8ed6f5"/>
+  <!-- sun -->
+  <rect x="128" y="18" width="34" height="34" fill="#ffd166"/>
+  <rect x="122" y="24" width="46" height="22" fill="#ffd166"/>
+  <rect x="134" y="12" width="22" height="46" fill="#ffd166"/>
+  <!-- the end of the pipe, top left -->
+  <rect x="14" y="0" width="40" height="34" fill="#9aa4ad"/>
+  <rect x="8" y="30" width="52" height="12" fill="#c3cbd2"/>
+  <rect x="8" y="40" width="52" height="4" fill="#6e7780"/>
+  <rect x="20" y="0" width="6" height="30" fill="#c3cbd2"/>
+  <!-- sea and sand -->
+  <rect y="110" width="180" height="16" fill="#2f8fd0"/>
+  <rect y="122" width="180" height="4" fill="#ffffff" opacity=".7"/>
+  <rect y="126" width="180" height="54" fill="#f6d68b"/>
+  <rect x="20" y="150" width="6" height="4" fill="#e0b866"/><rect x="140" y="164" width="6" height="4" fill="#e0b866"/><rect x="150" y="140" width="4" height="4" fill="#e0b866"/>
+  <!-- shadow and the poo itself (assets/poo.png, scaled up 4x) -->
+  <ellipse cx="90" cy="160" rx="46" ry="7" fill="#d9b56a" shape-rendering="auto"/>
+  <image x="26" y="38" width="128" height="128" style="image-rendering:pixelated" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAB1ElEQVR4nO1XsUoDQRDdvSwKNoIgGAQLOaIiKQIXSCHiByjYWKS18LNsLSz1A0QshBykEBHlSCFIAoJgETGS5GQSN+zdzd7ObcLZ5FV3uZl5LzNv9hLG5vhncJukulcL1fsL/57nKgATYivCsUlSSfuDPjs9chNdyUXAScULz463R9e2IoQtOZC5znvkMxDBGAuzjIPbkv+RoTi/CsiecLISQ9sledE7ROP23AXyOASVXCVOI395eqWWpAuoe7UQvpWKtn89NTlZAKxapzU2XGlnw0h88/zFLps+n+kI1jbXUbI4MYBKThYgCmJU/GBrCX1+F/xM4qrFIROFsQEpm8CzHDawXth4VGG97vfkutF2jCK4zb7rxqD6Q8ZAd9JEiDQBslDceJgR5WrCdmTZBocSBAUpRbHVNIGbRhCfMRWd1hsLhqtGDzimwwecLV1OBcQDuayTFssp5gP3QycAlZUBWqj5UYjcy66ZOsExctjlsleamEoVokP8qAajNm4fIwKxA4pjAsrLPVbd30WJKGZUt0QV8fC5mOiE0BWBREyEbgVtIdIequoldJ0x5Y5HkPQBx5LlGGYF3fy1AuQ7IM31VGLT25Gbitj+3J72D8scLC/8AvjH6C5fzd3LAAAAAElFTkSuQmCC"/>
+  <!-- its face, as the game draws it -->
+  <g><rect x="70" y="102" width="8" height="12" fill="#1b1010"/><rect x="70" y="102" width="4" height="4" fill="#ffffff"/><rect x="102" y="102" width="8" height="12" fill="#1b1010"/><rect x="102" y="102" width="4" height="4" fill="#ffffff"/><rect x="58" y="130" width="8" height="4" fill="#ff8fa8"/><rect x="114" y="130" width="8" height="4" fill="#ff8fa8"/><rect x="82" y="130" width="4" height="4" fill="#5a1a1a"/><rect x="94" y="130" width="4" height="4" fill="#5a1a1a"/><rect x="86" y="134" width="4" height="4" fill="#5a1a1a"/><rect x="90" y="134" width="4" height="4" fill="#5a1a1a"/></g>
+</svg>

@@ -6,7 +6,13 @@
 <title>Poo's Big Trip</title>
 <meta name="description" content="Steer a cute little poo through the pipes all the way to its holiday.">
 <meta name="theme-color" content="#3a2414">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%92%A9%3C/text%3E%3C/svg%3E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-title" content="Poo's Trip">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
@@ -1793,6 +1799,15 @@ function start() {
   requestAnimationFrame(frame);
 }
 loadAssets().then(start, err => { document.body.textContent = 'Could not load the pictures: ' + err.message; });
+
+// Offline support: sw.js caches this page. Once the page has loaded, send it every file the page used (the font,
+// the pictures) so those work offline too. Fails quietly where unsupported, e.g. on file://.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready).then((reg) => {
+    const send = () => reg.active && reg.active.postMessage({ cache: [location.href, ...performance.getEntriesByType('resource').map((r) => r.name)] });
+    send(); setTimeout(send, 5000); setTimeout(send, 20000);
+  }).catch(() => {});
+}
 </script>
 </body>
 </html>
