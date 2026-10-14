@@ -84,7 +84,7 @@ h1, h2 {
 .where { margin: 0 0 12px; font-weight: 700; font-size: 18px; }
 #cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   gap: 10px;
 }
 .card {
@@ -98,25 +98,42 @@ h1, h2 {
   border-radius: 6px;
   box-shadow: 0 4px 0 var(--ink);
   font-weight: 700;
-  font-size: 17px;
+  font-size: 15px;
 }
 .card:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
-.card canvas, .card .mystery {
+.card canvas {
   display: block;
   width: 100%;
   aspect-ratio: 120 / 76;
   image-rendering: pixelated;
   border-bottom: 3px solid var(--ink);
 }
-.card .mystery {
+.card .label { padding: 5px 2px 6px; white-space: nowrap; }
+.card .best { display: block; font-size: 13px; color: var(--ink-soft); }
+.card .num {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  min-width: 24px;
+  height: 24px;
   display: grid;
   place-items: center;
-  background: repeating-conic-gradient(#ffd166 0 25%, #ffb703 0 50%) 0 0 / 16px 16px;
-  font: 400 34px var(--font-pixel);
-  color: var(--ink);
-  text-shadow: 3px 3px 0 #fff;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--paper);
+  font-size: 13px;
 }
-.card .label { padding: 6px 4px 7px; }
+.card:disabled { cursor: default; background: #e8dccb; }
+.card:disabled:active { transform: none; box-shadow: 0 4px 0 var(--ink); }
+.card:disabled canvas { filter: grayscale(1) brightness(0.55); }
+.card .lock {
+  position: absolute;
+  top: 34%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 30px;
+  filter: drop-shadow(0 2px 0 var(--ink));
+}
 .card .stamp {
   position: absolute;
   top: 5px;
@@ -132,7 +149,11 @@ h1, h2 {
   font-size: 15px;
   transform: rotate(-12deg);
 }
-#done h2 { font-size: clamp(18px, 5.4vw, 30px); margin: 4px 0 14px; }
+#done h2 { font-size: clamp(18px, 5.4vw, 30px); margin: 4px 0 8px; }
+.ducks { margin: 0 0 14px; font: 400 clamp(16px, 4.6vw, 24px)/1.4 var(--font-pixel); }
+#done .row { display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; }
+#done .big { padding: 12px; font-size: 18px; }
+.big.alt { background: var(--card); }
 .big {
   padding: 14px 26px;
   border: 4px solid var(--ink);
@@ -188,6 +209,22 @@ h1, h2 {
   background: #6b4a33;
 }
 #trackFill { height: 100%; width: 0; border-radius: 6px; background: var(--gold); }
+#duckPill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 40px;
+  padding: 0 10px 0 6px;
+  border: 3px solid var(--ink);
+  border-radius: 20px;
+  background: var(--paper);
+  box-shadow: 0 3px 0 var(--ink);
+  font-size: 20px;
+  pointer-events: none;
+}
+#duckPill b { min-width: 1.2em; font-size: 18px; text-align: center; }
+#duckPill.bump { animation: bump 0.3s ease-out; }
+@keyframes bump { 40% { transform: scale(1.25); } }
 #trackPoo {
   position: absolute;
   top: 50%;
@@ -226,10 +263,10 @@ h1, h2 {
 .pad.pulse { animation: pulse 0.5s ease-in-out infinite alternate; }
 @keyframes pulse { to { background: var(--gold); transform: scale(1.08); } }
 
-/* Wide, short screens (a tablet or phone held sideways): all five postcards in one row. */
+/* Wide, short screens (a tablet or phone held sideways): the eight postcards in two rows of four. */
 @media (min-aspect-ratio: 4/3) {
   .panel { width: min(780px, calc(100% - 200px)); }
-  #cards { grid-template-columns: repeat(5, 1fr); }
+  #cards { grid-template-columns: repeat(4, 1fr); }
 }
 @media (max-height: 430px) {
   .panel { padding: 8px 10px 10px; }
@@ -239,6 +276,7 @@ h1, h2 {
 }
 @media (prefers-reduced-motion: reduce) {
   .pad.pulse { animation: none; background: var(--gold); }
+  #duckPill.bump { animation: none; }
 }
 
 /* ---- home button (back to all games), square and pixel-bordered like the HUD buttons ---- */
@@ -288,7 +326,12 @@ h1, h2 {
 
 <section id="done" class="panel" hidden>
   <h2 id="doneTitle">Beach!</h2>
-  <button id="againBtn" class="big" type="button">🚽 Again!</button>
+  <p id="doneDucks" class="ducks" aria-label="Ducks caught"></p>
+  <div class="row">
+    <button id="mapBtn" class="round" type="button" aria-label="Back to the postcards">🗺️</button>
+    <button id="againBtn" class="big alt" type="button" aria-label="Same trip again">🚽 Again</button>
+    <button id="nextBtn" class="big" type="button">Next</button>
+  </div>
 </section>
 
 <div id="hud" hidden>
@@ -298,6 +341,7 @@ h1, h2 {
     <img id="trackPoo" alt="">
     <span id="trackGoal"></span>
   </div>
+  <div id="duckPill" aria-label="Ducks caught"><span aria-hidden="true">🦆</span><b id="duckN">0</b></div>
   <button class="round sound" type="button" aria-label="Sound on or off">🔊</button>
 </div>
 <button id="leftBtn" class="pad" type="button" aria-label="Turn left" hidden></button>
@@ -307,8 +351,24 @@ h1, h2 {
 'use strict';
 
 /* ======== tuning knobs ======== */
-const TRIP_ROWS = 12;              // rows of junctions on the way to each holiday spot (even, so the last row leads to the middle)
-const DEAD_END_CHANCE = 0.5;       // chance that one way out of a turn ends at a no-entry sign
+// One trip per level, played in order: finishing one opens the next. Per level:
+//   rows   rows of junctions (keep it even, so the last row leads back to the middle)
+//   dead   chance that one way out of a turn is closed
+//   pump   share of the closed ways that are red pump pipes (they blow the poo back up a row) instead of no-entry signs
+//   ducks  chance of rubber ducks on an open pipe        gate   chance of a gate that opens and shuts on an open pipe
+//   water  chance of a water rush                       tp     chance of a toilet paper clog
+//   speed  riding speed, times BASE_SPEED                hurry  the poo picks a way itself after HURRY_WAIT seconds
+//   dark   only the poo's lamp lights the pipes          tip    what the voice says at the start
+const LEVELS = [
+  { id: 'beach',     rows: 8,  dead: 0.35, pump: 0,    ducks: 0.5,  gate: 0,    water: 0.22, tp: 0.12, speed: 1,    tip: 'Catch the rubber ducks!' },
+  { id: 'mountains', rows: 10, dead: 0.45, pump: 0,    ducks: 0.45, gate: 0,    water: 0.2,  tp: 0.16, speed: 1 },
+  { id: 'city',      rows: 10, dead: 0.5,  pump: 0.5,  ducks: 0.45, gate: 0,    water: 0.2,  tp: 0.14, speed: 1,    tip: 'Red pipes blow you back up!' },
+  { id: 'jungle',    rows: 12, dead: 0.5,  pump: 0.4,  ducks: 0.45, gate: 0.3,  water: 0.18, tp: 0.12, speed: 1.05, tip: 'Gates open and shut. Wait for a gap!' },
+  { id: 'desert',    rows: 12, dead: 0.55, pump: 0.5,  ducks: 0.4,  gate: 0.3,  water: 0.16, tp: 0.14, speed: 1.1 },
+  { id: 'farm',      rows: 12, dead: 0.55, pump: 0.5,  ducks: 0.4,  gate: 0.3,  water: 0.16, tp: 0.14, speed: 1.15, hurry: true, tip: 'Hurry! Pick a pipe fast!' },
+  { id: 'snow',      rows: 14, dead: 0.6,  pump: 0.5,  ducks: 0.4,  gate: 0.3,  water: 0.16, tp: 0.12, speed: 1.1,  dark: true, tip: "It's dark down there! Follow the ducks." },
+  { id: 'island',    rows: 14, dead: 0.6,  pump: 0.55, ducks: 0.4,  gate: 0.35, water: 0.16, tp: 0.12, speed: 1.2,  dark: true, hurry: true, tip: 'Dark and fast! You can do it!' },
+];
 const MAX_BRANCHES = 3;            // most pipes running side by side
 const BASE_SPEED = 93;             // game pixels per second
 const BOOST_SPEED = 225;           // speed while riding a water rush
@@ -316,8 +376,11 @@ const BOOST_TIME = 2.4;            // seconds the water rush lasts
 const CLOG_SPEED = 24;             // speed while pushing a toilet paper clog
 const CLOG_TIME = 1.6;             // seconds until the clog pops
 const BONK_TIME = 1.1;             // seconds of dizzy stars after a dead end
-const WATER_CHANCE = 0.22;         // chance of a water rush on a pipe between two rows
-const TP_CHANCE = 0.16;            // chance of a toilet paper clog on a pipe between two rows
+const STUB_DUCK_CHANCE = 0.4;      // chance of a duck waiting just before a no-entry sign (worth the bonk?)
+const GATE_OPEN = 2.4, GATE_SHUT = 1.8;   // seconds a gate stays open, then shut
+const WHOOSH_SPEED = 270;          // speed when a pump blows the poo back up
+const HURRY_WAIT = 1.6;            // on hurry levels, seconds the poo waits at a junction before it picks a way itself
+const LAMP_R = 84;                 // on dark levels, how far the poo's lamp shines
 
 /* ======== layout ======== */
 const LANES = 5, LANE_GAP = 50;    // pipe lanes across the field
@@ -416,6 +479,9 @@ const Sound = (() => {
     launch: () => { tone(200, 900, 0.35, 'triangle', 0.25); noise(0.3, 1800, 600, 0.2); },
     land: () => { tone(420, 90, 0.22, 'sine', 0.45); noise(0.16, 600, 200, 0.25, 0, 'lowpass'); },
     ding: () => { tone(1320, null, 0.35, 'sine', 0.2); tone(1760, null, 0.45, 'sine', 0.15, 0.08); },
+    squeak: () => { tone(1100, 1700, 0.07, 'square', 0.08); tone(1500, 1250, 0.09, 'square', 0.07, 0.07); },
+    whoosh: () => { tone(1100, 280, 0.7, 'triangle', 0.22); noise(0.7, 900, 3000, 0.2, 0, 'bandpass', 0.8); },
+    clunk: () => { tone(160, 90, 0.12, 'square', 0.14); noise(0.06, 1200, 400, 0.2, 0, 'lowpass'); },
     fanfare: () => {
       [523, 659, 784, 1047].forEach((f, i) => tone(f, null, 0.18, 'triangle', 0.22, i * 0.12));
       [523, 659, 784, 1047].forEach(f => tone(f, null, 0.7, 'triangle', 0.11, 0.52));
@@ -605,7 +671,8 @@ const drawPoo = (spr, x, y, flip) => drawSprite(g, spr, x - POO_AX, y - POO_AY, 
 // Holiday accessories, drawn over the poo. Painted in poo.png coordinates, shifted by (4, 6) into a 40x40 sprite.
 // anchor: the poo.png row the hat follows when the poo squashes.
 const HAT_DX = -4, HAT_DY = -6;
-const HATS = { shades: { anchor: 16 }, beanie: { anchor: 8 }, beret: { anchor: 8 }, explorer: { anchor: 8 } };
+const HATS = { shades: { anchor: 16 }, beanie: { anchor: 8 }, beret: { anchor: 8 }, explorer: { anchor: 8 },
+  pharaoh: { anchor: 8 }, straw: { anchor: 8 }, earmuffs: { anchor: 16 }, pirate: { anchor: 8 } };
 function hatSprite(kind) {
   return makeSprite(40, 40, s0 => {
     const s = {
@@ -635,6 +702,30 @@ function hatSprite(kind) {
       s.rect(10, 7, 14, 2, '#8a5a2b');
       s.ellipse(16.5, 10, 12.5, 2.2, (nx, ny) => ny > 0.2 ? '#c8ad72' : '#e1c88d');
       s0.outline('#4a3618');
+    } else if (kind === 'pharaoh') {   // a striped headcloth with flaps down both sides
+      const stripe = y => y % 2 ? '#2f5fd0' : '#ffd43b';
+      s.ellipse(16.5, 9, 9.5, 6.5, (nx, ny, x, y) => ny > 0.15 ? null : stripe(y - 6));
+      for (let y = 9; y < 21; y++) { s.rect(6, y, 4, 1, stripe(y)); s.rect(23, y, 4, 1, stripe(y)); }
+      s.rect(7, 8, 19, 2, '#ffd43b');
+      s.rect(16, 5, 1, 3, '#e94b4b'); s.set(16, 4, '#2fb35a');
+      s0.outline('#3a2a10');
+    } else if (kind === 'straw') {     // a farmer's straw hat with a red band
+      s.ellipse(16.5, 6, 6.5, 4.6, (nx, ny, x, y) => ny > 0.3 ? null : (x + y) % 3 ? '#f7dc8c' : '#e8c66a');
+      s.rect(10, 6, 13, 2, '#e94b4b');
+      s.ellipse(16.5, 9, 13, 2.2, (nx, ny, x) => ny > 0.2 ? '#d8b45a' : x % 3 ? '#f2d27a' : '#e8c66a');
+      s0.outline('#7a5a20');
+    } else if (kind === 'earmuffs') {  // a headband over the top and two fluffy pink muffs
+      for (let x = 8; x <= 25; x++) { const y = Math.round(2 + Math.pow((x - 16.5) / 8.5, 2) * 11); s.rect(x, y, 1, 2, '#8d99b3'); }
+      for (const cx of [6.5, 26.5]) {
+        s.ellipse(cx, 16, 3.4, 3.8, (nx, ny, x, y) => (x + y) % 3 ? '#ff8fc8' : '#ffc2e2');
+        s.set(Math.round(cx) - 1, 14, '#ffffff');
+      }
+      s0.outline('#7a1f4a');
+    } else if (kind === 'pirate') {    // a black pirate hat with gold trim and a little skull
+      s.ellipse(16.5, 7, 9, 5.5, (nx, ny) => ny > 0.3 ? null : '#22222e');
+      s.ellipse(16.5, 9, 13, 2.4, (nx, ny) => ny < -0.2 ? '#ffd43b' : '#2c2c3a');
+      s.rect(14, 4, 5, 3, '#ffffff'); s.set(15, 5, '#22222e'); s.set(17, 5, '#22222e'); s.rect(15, 7, 3, 1, '#ffffff');
+      s0.outline('#0a0a12');
     }
   });
 }
@@ -690,6 +781,16 @@ function buildSprites() {
   SPR.star = makeSprite(7, 7, s => {
     s.map(['..y..', '.yyy.', 'yyyyy', '.yyy.', '.y.y.'], { y: '#ffe14d' }, 1, 1);
     s.outline('#7a5a10');
+  });
+  // a little rubber duck that floats in the pipes (the bathroom duck is too big to fit inside one)
+  SPR.duck = makeSprite(16, 14, s => {
+    s.ellipse(7.5, 9.5, 6.5, 3.5, (nx, ny) => ny > 0.45 ? '#f0b400' : '#ffd43b');
+    s.ellipse(10, 5, 3.2, 3.2, '#ffd43b');
+    s.rect(1, 7, 2, 2, '#ffd43b');
+    s.rect(5, 8, 4, 1, '#f0b400');
+    s.rect(13, 5, 2, 1, '#ff8c1a'); s.set(13, 6, '#e06a00');
+    s.set(10, 4, '#1b1010'); s.set(9, 3, '#fff6c8');
+    s.outline('#7a4a00');
   });
 }
 
@@ -932,19 +1033,246 @@ function jungleFx(g, W, H, t) {
   }
 }
 
+function pyramid(g, cx, top, base, lit, shade, line) {
+  cx = Math.round(cx); top = Math.round(top);
+  for (let y = top; y < base; y++) {
+    const hw = y - top;
+    R(g, lit, cx - hw, y, hw, 1);
+    R(g, shade, cx, y, hw + 1, 1);
+    if ((y - top) % 5 === 4) { R(g, line, cx - hw, y, hw, 1); R(g, '#a87a34', cx, y, hw + 1, 1); }
+  }
+}
+function cactus(g, x, base, s) {
+  const c = '#3f9e4a', d = '#2a7034', u = Math.max(1, Math.round(2 * s)), h = Math.round(13 * u), w = 3 * u;
+  x = Math.round(x);
+  const arm = (ax, ay, dir) => {
+    R(g, d, ax - (dir < 0 ? 3 * u : 0) - 1, ay - 1, 3 * u + 2, u + 2); R(g, c, ax - (dir < 0 ? 3 * u : 0), ay, 3 * u, u);
+    const tx = dir < 0 ? ax - 3 * u : ax + 2 * u;
+    R(g, d, tx - 1, ay - 4 * u - 1, u + 2, 4 * u + 2); R(g, c, tx, ay - 4 * u, u, 4 * u + 1);
+  };
+  R(g, d, x - 1, base - h - 1, w + 2, h + 1);
+  arm(x, base - Math.round(h * 0.5), -1);
+  arm(x + w, base - Math.round(h * 0.65), 1);
+  R(g, c, x, base - h, w, h);
+  R(g, '#7ccf6a', x + u, base - h + u, Math.max(1, u >> 1), h - 2 * u);
+}
+function desertBg(g, W, H) {
+  const gy = groundY(H);
+  bands(g, ['#4fa8ee', '#78c0f2', '#a8d8f2', '#f2dfb0'], 0, gy, W);
+  for (let x = 0; x < W; x++) {   // far dunes
+    const h = Math.round(H * 0.07 + Math.sin(x * 0.031) * H * 0.025 + Math.sin(x * 0.013 + 1) * H * 0.02);
+    R(g, '#ecc883', x, gy - h, 1, h);
+  }
+  const MH = Math.min(H * 0.44, W * 0.5);
+  pyramid(g, W * 0.86, gy - MH * 0.62, gy, '#e3b562', '#c08f40', '#cfa050');
+  pyramid(g, W * 0.68, gy - MH, gy, '#e8bd6a', '#c49444', '#d4a658');
+  R(g, '#f0c878', 0, gy, W, H - gy);
+  R(g, '#e0b25e', 0, gy, W, 2);
+  for (let x = 0; x < W; x += 2) R(g, '#e8bd6a', x, gy + 3 + Math.round((Math.sin(x * 0.08) + 1) * 2), 2, 1);
+  speckle(g, ['#d8a957', '#fff0c4'], 0, gy + 4, W, H - gy - 4, 26, 41);
+  const ps = propScale(H);
+  cactus(g, W * 0.93, gy + 6 * ps, ps);
+  cactus(g, W * 0.33, gy + (H - gy) * 0.7, ps * 0.8);
+}
+function desertFx(g, W, H, t) {
+  const gy = groundY(H), k = propScale(H);
+  sun(g, W * 0.24, H * 0.15, Math.max(4, Math.round(H * 0.06)), t);
+  for (let i = 0; i < 2; i++) cloud(g, ((rnd(i + 70) * W + t * (2 + i)) % (W + 60)) - 30, H * (0.1 + i * 0.12), H / 280);
+  // a tumbleweed rolling past
+  const tx = ((t * 22) % (W + 40)) - 20, ty = gy + (H - gy) * 0.35 - Math.abs(Math.sin(t * 4)) * 4 * k, r = Math.max(2, 5 * k);
+  for (let i = 0; i < 10; i++) { const a = i * 0.63 + t * 5; R(g, i % 2 ? '#a07840' : '#c49a5a', tx + Math.cos(a) * r, ty + Math.sin(a) * r, 1, 1); }
+  R(g, '#8a6430', tx, ty, 1, 1);
+  bird(g, ((t * 9) % (W + 40)) - 20, H * 0.24 + Math.sin(t * 1.2) * 3, t);
+  // heat shimmer over the sand
+  for (let i = 0; i < W / 14; i++) R(g, '#fff6dc', (rnd(i + 500) * W + Math.sin(t * 3 + i) * 2), gy - 2 - rnd(i + 501) * 6 * k, 3, 1);
+}
+
+function barn(g, x, base, w) {
+  x = Math.round(x); w = Math.round(w);
+  const h = Math.round(w * 0.62), roof = Math.round(w * 0.42), ink = '#5a1a14';
+  for (let y = 0; y < roof; y++) { const hw = Math.round(w / 2 * (y + 1) / roof) + 1; R(g, y < 2 ? ink : '#8a2a24', x - hw, base - h - roof + y, hw * 2, 1); }
+  R(g, ink, x - w / 2 - 1, base - h, w + 2, h);
+  R(g, '#d8433a', x - w / 2, base - h, w, h);
+  for (let i = 3; i < w; i += 4) R(g, '#c03a32', x - w / 2 + i, base - h, 1, h);
+  const dw = Math.round(w * 0.36), dh = Math.round(h * 0.6), dx = x - (dw >> 1);
+  R(g, '#ffffff', dx - 1, base - dh - 1, dw + 2, dh + 1);
+  R(g, '#8a2a24', dx, base - dh, dw, dh);
+  for (let i = 0; i < dw; i++) { R(g, '#ffffff', dx + i, base - dh + Math.round(i * dh / dw), 1, 1); R(g, '#ffffff', dx + i, base - 1 - Math.round(i * dh / dw), 1, 1); }
+  R(g, '#ffffff', x - 3, base - h - roof + Math.round(roof * 0.5), 6, Math.max(2, Math.round(roof * 0.3)));
+  R(g, '#f2d27a', x - 2, base - h - roof + Math.round(roof * 0.5) + 1, 4, Math.max(1, Math.round(roof * 0.3) - 1));
+}
+function cow(g, x, base, s, t) {
+  const u = Math.max(1, Math.round(s * 2)), ink = '#2a2a2a', bob = Math.sin(t * 2) > 0.7 ? u : 0;
+  x = Math.round(x);
+  for (const lx of [1, 3, 8, 10]) R(g, ink, x - 6 * u + lx * u, base - 3 * u, u, 3 * u);
+  R(g, ink, x - 7 * u, base - 8 * u, 12 * u, 6 * u);
+  R(g, '#ffffff', x - 6 * u, base - 7 * u, 10 * u, 4 * u);
+  R(g, ink, x - 4 * u, base - 7 * u, 3 * u, 2 * u); R(g, ink, x + 1 * u, base - 5 * u, 2 * u, 2 * u);
+  R(g, ink, x + 4 * u, base - 9 * u + bob, 5 * u, 5 * u);   // head
+  R(g, '#ffffff', x + 5 * u, base - 8 * u + bob, 3 * u, 3 * u);
+  R(g, '#ffb4c4', x + 5 * u, base - 6 * u + bob, 3 * u, u);
+  R(g, ink, x + 6 * u, base - 8 * u + bob, u, u);
+  R(g, ink, x - 8 * u, base - 8 * u + (Math.sin(t * 5) > 0 ? 0 : u), u, 4 * u);   // tail swish
+}
+function farmBg(g, W, H) {
+  const gy = groundY(H), k = propScale(H);
+  bands(g, ['#5cbcff', '#82ccff', '#acdeff', '#d8f1ff'], 0, gy, W);
+  ell(g, '#8ad673', W * 0.22, gy, W * 0.42, H * 0.12);
+  ell(g, '#74c95e', W * 0.82, gy + 2, W * 0.5, H * 0.17);
+  barn(g, W * 0.8, gy, Math.max(20, Math.min(W * 0.2, H * 0.34)));
+  R(g, '#7cc95f', 0, gy, W, H - gy);
+  R(g, '#9ade7c', 0, gy, W, 2);
+  for (let x = 2; x < W; x += Math.max(4, Math.round(9 * k))) { R(g, '#ffffff', x, gy - Math.round(9 * k), Math.max(1, Math.round(2 * k)), Math.round(9 * k)); }
+  R(g, '#ffffff', 0, gy - Math.round(7 * k), W, Math.max(1, Math.round(k))); R(g, '#ffffff', 0, gy - Math.round(3 * k), W, Math.max(1, Math.round(k)));
+  speckle(g, ['#ffffff', '#ffd43b', '#4f9a3f', '#ff8fab'], 0, gy + 3, W, H - gy - 3, 18, 51);
+  for (const fx of [0.95, 0.99]) {   // sunflowers
+    const sx = W * fx, top = gy - Math.round(34 * k);
+    R(g, '#3f8f3a', sx, top, 1, gy - top);
+    ell(g, '#ffc61a', sx, top, 4 * k + 1, 4 * k + 1);
+    ell(g, '#7a4a1a', sx, top, 2 * k + 0.5, 2 * k + 0.5);
+  }
+}
+function farmFx(g, W, H, t) {
+  const gy = groundY(H), k = propScale(H);
+  sun(g, W * 0.18, H * 0.13, Math.max(4, Math.round(H * 0.05)), t);
+  for (let i = 0; i < 3; i++) cloud(g, ((rnd(i + 80) * W + t * (3 + i)) % (W + 60)) - 30, H * (0.08 + i * 0.09), H / 220);
+  cow(g, W * 0.64 + Math.sin(t * 0.3) * 4 * k, gy + (H - gy) * 0.55, k, t);
+  for (let i = 0; i < 2; i++) {   // butterflies
+    const x = W * (0.3 + 0.25 * Math.sin(t * 0.6 + i * 3)), y = gy - H * (0.1 + 0.06 * Math.sin(t * 1.4 + i)), open = Math.sin(t * 12 + i) > 0;
+    const c = i ? '#ffffff' : '#ff9f1c';
+    R(g, c, x - (open ? 2 : 1), y, open ? 2 : 1, 2); R(g, c, x + 1, y, open ? 2 : 1, 2); R(g, '#3a2414', x, y, 1, 2);
+  }
+}
+
+function igloo(g, x, base, r) {
+  x = Math.round(x); r = Math.round(r);
+  const dome = (rr, col, dx = 0) => {   // the top half of a circle, standing on the base line
+    for (let y = base - rr; y < base; y++) { const hw = Math.round(Math.sqrt(Math.max(0, rr * rr - (base - y - 0.5) ** 2))); R(g, col, x + dx - hw, y, hw * 2, 1); }
+  };
+  dome(r + 1, '#9fb6d6');
+  dome(r, '#ffffff');
+  for (let y = base - r; y < base; y++) {   // shade on the right
+    const hw = Math.round(Math.sqrt(Math.max(0, r * r - (base - y - 0.5) ** 2)));
+    R(g, '#e4edf8', x + Math.round(hw * 0.45), y, hw - Math.round(hw * 0.45), 1);
+  }
+  for (let j = 1; j < 4; j++) {
+    const y = base - Math.round(r * j / 4), hw = Math.round(Math.sqrt(r * r - (r * j / 4) ** 2));
+    R(g, '#c4d4ea', x - hw, y, hw * 2, 1);
+    for (let i = -hw + ((j % 2) * 3) + 2; i < hw - 1; i += 6) R(g, '#c4d4ea', x + i, y, 1, Math.max(1, Math.round(r / 4)));
+  }
+  const dw = Math.max(2, Math.round(r * 0.4)), dh = Math.max(3, Math.round(r * 0.55)), dx = x - Math.round(r * 0.1);
+  for (let y = base - dh; y < base; y++) {   // the door: an arch
+    const u = (base - y) / dh, hw = Math.round(dw * Math.sqrt(Math.max(0, 1 - Math.max(0, u - 0.5) ** 2 * 4)));
+    R(g, '#9fb6d6', dx - hw - 1, y, hw * 2 + 2, 1);
+    R(g, '#24324e', dx - hw, y + 1, hw * 2, 1);
+  }
+}
+function penguin(g, x, base, s, t) {
+  const u = Math.max(1, Math.round(s * 2)), step = Math.floor(t * 4) % 2;
+  x = Math.round(x);
+  R(g, '#ff9f1c', x - 2 * u + (step ? 0 : u), base - u, 2 * u, u); R(g, '#ff9f1c', x + (step ? u : 0), base - u, 2 * u, u);
+  R(g, '#1f2438', x - 3 * u, base - 10 * u, 6 * u, 9 * u);
+  R(g, '#1f2438', x - 2 * u, base - 12 * u, 4 * u, 2 * u);
+  R(g, '#ffffff', x - 2 * u, base - 8 * u, 4 * u, 6 * u);
+  R(g, '#ffffff', x - u, base - 11 * u, u, u); R(g, '#ffffff', x + u, base - 11 * u, u, u);
+  R(g, '#ff9f1c', x, base - 10 * u, u, u);
+  R(g, '#1f2438', x - 4 * u, base - 8 * u + (step ? u : 0), u, 4 * u); R(g, '#1f2438', x + 3 * u, base - 8 * u + (step ? 0 : u), u, 4 * u);
+}
+function snowBg(g, W, H) {
+  const gy = groundY(H);
+  bands(g, ['#0d1b44', '#18306a', '#28488e', '#4a74b2', '#86ace0'], 0, gy, W);
+  speckle(g, ['#ffffff', '#cfe3ff'], 0, 0, W, H * 0.45, 80, 61);
+  const MH = Math.min(H * 0.4, W * 0.6), n = Math.ceil(W / 70) + 1;
+  for (let i = 0; i < n; i++) mountain(g, '#b8cbe8', '#9db4d8', '#ffffff', (i + rnd(i + 90) * 0.5) * 70 - 10, gy - MH * (0.5 + rnd(i + 91) * 0.35), gy, 0.95);
+  R(g, '#f4f8ff', 0, gy, W, H - gy);
+  R(g, '#dfe9f8', 0, gy, W, 2);
+  speckle(g, ['#cfdcf0', '#ffffff'], 0, gy + 3, W, H - gy - 3, 16, 71);
+  const ps = propScale(H);
+  for (const fx of [0.9, 0.97]) {
+    drawProp(g, IMG.pine, W * fx, gy + 2, ps);
+    for (let i = 0; i < 4; i++) R(g, '#ffffff', W * fx - 6 * ps + i * 4 * ps, gy - (50 - i * 9) * ps, Math.max(1, 4 * ps), 1);
+  }
+  igloo(g, W * 0.76, gy + Math.round((H - gy) * 0.3), Math.max(7, Math.round(26 * ps)));
+}
+function snowFx(g, W, H, t) {
+  const gy = groundY(H), k = propScale(H);
+  // the northern lights: wavy green ribbons that shimmer
+  for (let band = 0; band < 2; band++) {
+    g.globalAlpha = 0.28 + Math.sin(t * 0.8 + band) * 0.1;
+    for (let x = 0; x < W; x += 2) {
+      const y = H * (0.1 + band * 0.08) + Math.sin(x * 0.03 + t * 0.6 + band * 2) * H * 0.04;
+      R(g, band ? '#7dffc0' : '#3fe8a0', x, y, 2, Math.round(H * 0.06 + Math.sin(x * 0.07 + t) * H * 0.02));
+    }
+  }
+  g.globalAlpha = 1;
+  ell(g, '#fff6d8', W * 0.15, H * 0.12, Math.max(3, H * 0.04), Math.max(3, H * 0.04));
+  penguin(g, W * 0.62 + Math.sin(t * 0.5) * 10 * k, gy + (H - gy) * 0.6, k, t);
+  for (let i = 0; i < W / 5; i++) {   // falling snow
+    const x = (rnd(i + 600) * W + Math.sin(t + i) * 4 + W) % W, y = (rnd(i + 601) * H + t * (10 + rnd(i + 602) * 14)) % H;
+    R(g, '#ffffff', x, y, 1, 1);
+  }
+}
+
+function ship(g, x, y, s) {
+  const u = Math.max(1, Math.round(s * 2));
+  x = Math.round(x); y = Math.round(y);
+  for (let j = 0; j < 4; j++) R(g, j ? '#7a4a24' : '#3a2414', x - (10 - j) * u, y + j * u, (20 - 2 * j) * u, u);
+  R(g, '#5a3418', x - 9 * u, y + u, 18 * u, u);
+  R(g, '#3a2414', x, y - 16 * u, u, 16 * u);
+  for (let j = 0; j < 7; j++) R(g, '#fff8ec', x - (6 - Math.floor(j / 2)) * u, y - (14 - j * 2) * u, (6 - Math.floor(j / 2)) * u * 2 + u, 2 * u);
+  R(g, '#1f2438', x, y - 19 * u, 4 * u, 3 * u);
+  R(g, '#ffffff', x + u, y - 18 * u, u, u);
+  R(g, '#1f2438', x - 2 * u, y - 10 * u, 2 * u, 2 * u); R(g, '#1f2438', x + u, y - 10 * u, 2 * u, 2 * u);
+}
+function islandBg(g, W, H) {
+  const gy = groundY(H), hz = Math.round(H * 0.48);
+  bands(g, ['#3db7ff', '#62c6ff', '#8ad6ff', '#b8e8ff'], 0, hz, W);
+  bands(g, ['#1f78c4', '#2b8ad6', '#3aa0e6'], hz, gy, W);
+  ell(g, '#2f7a4b', W * 0.12, hz, W * 0.06, H * 0.03);   // a little island far away
+  R(g, '#2f7a4b', W * 0.12, hz - H * 0.07, 1, H * 0.06);
+  ell(g, '#3f9e5c', W * 0.12, hz - H * 0.07, 4, 2);
+  R(g, '#f5d488', 0, gy - 2, W, H - gy + 2);
+  for (let x = 0; x < W; x++) R(g, '#f5d488', x, gy - 2 - Math.round(Math.max(0, Math.sin(x / W * Math.PI)) * 3), 1, 3);
+  speckle(g, ['#e2b863', '#fff0c4'], 0, gy, W, H - gy, 22, 81);
+  const ps = propScale(H);
+  drawProp(g, IMG.palm, W * 0.93, gy + (H - gy) * 0.3, ps);
+  drawProp(g, IMG.chest, W * 0.74, gy + (H - gy) * 0.55, ps);
+  const xx = W * 0.62, xy = gy + (H - gy) * 0.72, xs = Math.max(2, Math.round(4 * ps));
+  for (let i = -xs; i <= xs; i++) { R(g, '#d83a2a', xx + i, xy + i, 2, 2); R(g, '#d83a2a', xx + i, xy - i, 2, 2); }   // X marks the spot
+}
+function islandFx(g, W, H, t) {
+  const gy = groundY(H), hz = Math.round(H * 0.48), k = propScale(H);
+  sun(g, W * 0.4, H * 0.14, Math.max(4, Math.round(H * 0.05)), t);
+  for (let i = 0; i < 2; i++) cloud(g, ((rnd(i + 90) * W + t * (3 + i * 2)) % (W + 60)) - 30, H * (0.08 + i * 0.12), H / 220);
+  for (let i = 0; i < W / 8; i++) {
+    const x = (((rnd(i + 140) * W + t * 5 * (i % 2 ? 1 : -1)) % W) + W) % W;
+    R(g, '#a9dcff', x, hz + 2 + Math.floor(rnd(i + 180) * (gy - hz - 6)), 4, 1);
+  }
+  ship(g, W * 0.76 + Math.sin(t * 0.25) * 6 * k, hz + (gy - hz) * 0.45 + Math.round(Math.sin(t * 1.6) * 1.5 * k), k);
+  for (let x = 0; x < W; x += 2) R(g, '#ffffff', x, gy - 4 + (Math.sin(x * 0.15 + t * 2) > 0.2 ? 0 : 1), 2, 1);
+  drawProp(g, IMG.parrot, W * 0.93 - 8 * k, gy + (H - gy) * 0.3 - 62 * k + (Math.sin(t * 3) > 0.6 ? 0 : 1), k * 0.8);
+  bird(g, ((t * 13) % (W + 40)) - 20, H * 0.28 + Math.sin(t * 2) * 3, t);
+}
+
 const DESTS = [
   { id: 'beach', name: 'Beach', emoji: '🏖️', hat: 'shades', say: 'Welcome to the beach!', ground: '#f5d488', bg: beachBg, fx: beachFx },
   { id: 'mountains', name: 'Mountains', emoji: '🏔️', hat: 'beanie', say: 'Welcome to the mountains!', ground: '#6cc25a', bg: mountainsBg, fx: mountainsFx },
   { id: 'city', name: 'City', emoji: '🏙️', hat: 'beret', say: 'Welcome to the big city!', ground: '#9a92b8', bg: cityBg, fx: cityFx },
   { id: 'jungle', name: 'Jungle', emoji: '🦜', hat: 'explorer', say: 'Welcome to the jungle!', ground: '#58a845', bg: jungleBg, fx: jungleFx },
+  { id: 'desert', name: 'Desert', emoji: '🏜️', hat: 'pharaoh', say: 'Welcome to the desert!', ground: '#f0c878', bg: desertBg, fx: desertFx },
+  { id: 'farm', name: 'Farm', emoji: '🐄', hat: 'straw', say: 'Welcome to the farm!', ground: '#7cc95f', bg: farmBg, fx: farmFx },
+  { id: 'snow', name: 'Snow', emoji: '⛄', hat: 'earmuffs', say: 'Welcome to the snow!', ground: '#f4f8ff', bg: snowBg, fx: snowFx },
+  { id: 'island', name: 'Island', emoji: '🏴‍☠️', hat: 'pirate', say: 'Welcome to Treasure Island!', ground: '#f5d488', bg: islandBg, fx: islandFx },
 ];
+const destOf = L => DESTS.find(d => d.id === L.id);
 
 /* ======== the pipe world ======== */
 // The pipes form rows of junctions over five lanes. At a T the poo turns left or right; at the two edge lanes the
 // pipe bends back inward by itself. Branches that reach the same lane join, and some branches end at a no-entry
-// sign. Every pipe always has at least one open way onward, and the last row leads back to the middle lane.
-function seg(x1, y1, x2, y2, water = false) {
-  return { x1: Math.min(x1, x2), y1: Math.min(y1, y2), x2: Math.max(x1, x2), y2: Math.max(y1, y2), water };
+// sign or a red pump pipe. Every pipe always has at least one open way onward, and the last row leads back to the
+// middle lane. Rubber ducks sit on some open pipes and in front of some signs; gates open and shut on others.
+function seg(x1, y1, x2, y2, water = false, pump = false) {
+  return { x1: Math.min(x1, x2), y1: Math.min(y1, y2), x2: Math.max(x1, x2), y2: Math.max(y1, y2), water, pump };
 }
 const other = side => side === 'L' ? 'R' : 'L';
 function shuffle(a) {
@@ -952,12 +1280,12 @@ function shuffle(a) {
   return a;
 }
 
-function buildWorld() {
-  const w = { segs: [], items: [], rows: [], exitY: 0 };
+function buildWorld(L) {
+  const w = { segs: [], items: [], rows: [], exitY: 0, maxDucks: 0 };
   let active = [2], y = FIRST_DROP;
   w.segs.push(seg(CX, FLOOR_H - 4, CX, y));
-  for (let r = 0; r < TRIP_ROWS; r++) {
-    const last = r === TRIP_ROWS - 1;
+  for (let r = 0; r < L.rows; r++) {
+    const last = r === L.rows - 1;
     const nodes = {};
     for (const lane of active) {
       const outs = lane === 0 ? { R: 1 } : lane === LANES - 1 ? { L: LANES - 2 } : { L: lane - 1, R: lane + 1 };
@@ -976,32 +1304,59 @@ function buildWorld() {
     if (last) live = new Set([2]);
     else {
       for (const n of shuffle(list.filter(n => n.type === 'T')))
-        if (Math.random() < DEAD_END_CHANCE) live = tryClose(live, n.outs[Math.random() < 0.5 ? 'L' : 'R']);
+        if (Math.random() < L.dead) live = tryClose(live, n.outs[Math.random() < 0.5 ? 'L' : 'R']);
       for (const l of shuffle([...live])) if (live.size > MAX_BRANCHES) live = tryClose(live, l);
     }
     const ny = last ? y + EXIT_LEN : y + ROW_MIN + Math.floor(Math.random() * (ROW_MAX - ROW_MIN));
+    // a closed lane is a pump pipe or a no-entry sign, the same for every turn that leads into it
+    const kind = {};
+    for (const l of all) if (!live.has(l)) kind[l] = r > 0 && Math.random() < L.pump ? 'pump' : 'sign';
     for (const n of list) {
       const lanes = [n.lane, ...Object.values(n.outs)];
       w.segs.push(seg(laneX(Math.min(...lanes)), y, laneX(Math.max(...lanes)), y));
-      for (const [side, l] of Object.entries(n.outs)) if (!live.has(l)) n.dead = side;
+      for (const [side, l] of Object.entries(n.outs)) if (!live.has(l)) { n.dead = side; n.deadKind = kind[l]; }
     }
+    const segD = {}, stubD = {};
+    const duck = (x, dy, l, stub) => { w.items.push({ type: 'duck', x, y: Math.round(y + dy), ph: Math.random() * 6 }); (stub ? stubD : segD)[l] = ((stub ? stubD : segD)[l] || 0) + 1; };
     for (const l of all) {
       const x = laneX(l);
       if (!live.has(l)) {
-        w.segs.push(seg(x, y, x, y + DEAD_LEN));
-        w.items.push({ type: 'sign', x, y: y + DEAD_LEN });
+        if (kind[l] === 'pump') {
+          w.segs.push(seg(x, y, x, y + DEAD_LEN, false, true));
+          w.items.push({ type: 'pump', x, y: y + DEAD_LEN });
+        } else {
+          w.segs.push(seg(x, y, x, y + DEAD_LEN));
+          w.items.push({ type: 'sign', x, y: y + DEAD_LEN });
+          if (Math.random() < STUB_DUCK_CHANCE) duck(x, 28, l, true);
+        }
         continue;
       }
-      const roll = Math.random(), water = !last && roll < WATER_CHANCE;
+      const roll = Math.random(), water = !last && roll < L.water;
       w.segs.push(seg(x, y, x, ny, water));
       if (water) w.items.push({ type: 'water', x, y: y + 21 });
-      else if (!last && roll < WATER_CHANCE + TP_CHANCE) w.items.push({ type: 'tp', x, y: Math.round(y + (ny - y) * 0.55) });
+      else if (!last && roll < L.water + L.tp) w.items.push({ type: 'tp', x, y: Math.round(y + (ny - y) * 0.55) });
+      if (last) continue;
+      if (Math.random() < L.ducks) for (let k = Math.random() < 0.35 ? 2 : 1; k > 0; k--) duck(x, (ny - y) * (0.17 + k * 0.13), l, false);
+      if (Math.random() < L.gate) w.items.push({ type: 'gate', x, y: Math.round(y + (ny - y) * 0.8), ph: Math.random() * (GATE_OPEN + GATE_SHUT) });
     }
-    w.rows.push({ y, nodes });
+    w.rows.push({ y, nodes, segD, stubD });
     active = [...live];
     y = ny;
   }
   w.exitY = y;
+  // The most ducks one trip can get: take the best way at every turn, plus the duck in front of a sign when there is one.
+  const memo = {};
+  const best = (r, lane) => {
+    if (r >= w.rows.length) return 0;
+    const key = r + ':' + lane;
+    if (key in memo) return memo[key];
+    const row = w.rows[r], n = row.nodes[lane];
+    let b = 0;
+    for (const [side, l] of Object.entries(n.outs)) if (n.dead !== side) b = Math.max(b, (row.segD[l] || 0) + best(r + 1, l));
+    if (n.dead && n.deadKind === 'sign') b += row.stubD[n.outs[n.dead]] || 0;
+    return memo[key] = b;
+  };
+  w.maxDucks = best(0, 2);
   return w;
 }
 
@@ -1015,31 +1370,48 @@ function route(n, side) {
   const go = s => [{ x: laneX(n.outs[s]), y: n.y }, nextStop(n, n.outs[s])];
   if (n.dead !== side) return go(side);
   const X = laneX(n.outs[side]);
+  if (n.deadKind === 'pump') return [{ x: X, y: n.y }, { x: X, y: n.y + DEAD_LEN - 18, ev: 'pump', n }];
   return [{ x: X, y: n.y }, { x: X, y: n.y + DEAD_LEN - 20, ev: 'bonk' }, { x: X, y: n.y }, ...go(other(side))];
+}
+// Gates slide shut and open again on a loop: 0 is wide open, 1 is shut.
+function gateShut(it) {
+  const t = ((trip ? trip.t : T) + it.ph) % (GATE_OPEN + GATE_SHUT), e = 0.35;
+  if (t < GATE_OPEN) return t < e ? 1 - t / e : 0;
+  return Math.min(1, (t - GATE_OPEN) / e);
 }
 
 /* ======== game state ======== */
 const canvas = document.getElementById('game');
-const g = canvas.getContext('2d');
+let g = canvas.getContext('2d');   // swapped for an off-screen canvas while the dirt is drawn
 let W = 200, H = 300, offX = 0, pxScale = 1;
 let mode = 'menu';           // menu | trip | dest
 let T = 0;                   // seconds since start, drives idle animations
-let world = null, poo = null, pending = null, dest = null, trip = null;
+let world = null, poo = null, pending = null, dest = null, trip = null, level = LEVELS[0];
 let cam = { y: 0 };
 let parts = [];
 let toilet, dirtTiles, hatCache = {};
-let visited = store.get('visited', []);
+let visited = store.get('visited', []);      // levels finished (their ids)
+let bestDucks = store.get('ducks', {});      // most ducks caught on each level
+const unlocked = i => i === 0 || visited.includes(LEVELS[i].id) || visited.includes(LEVELS[i - 1].id);
+const said = new Set();                       // voice hints already given this session
 
 function newPoo() {
   return {
     x: CX, y: POO_START_Y, state: 'idle', path: [], speed: 0, dirX: 0, dirY: 1,
-    flushT: 0, rideT: 0, boostT: 0, clogT: 0, bonkT: 0, waitT: 0, tp: null,
+    flushT: 0, rideT: 0, boostT: 0, clogT: 0, bonkT: 0, waitT: 0, tp: null, blocked: false, curNode: null, prevNode: null,
   };
 }
 
-function startTrip(d) {
-  trip = { dest: d, t: 0, irisT: 0, shake: 0, asked: false };
-  world = buildWorld();
+function sayOnce(key, text, delay = 0) {
+  if (said.has(key)) return;
+  said.add(key);
+  setTimeout(() => Sound.say(text), delay);
+}
+
+function startTrip(L) {
+  level = L;
+  trip = { dest: destOf(L), t: 0, irisT: 0, shake: 0, asked: false, ducks: 0 };
+  world = buildWorld(L);
   poo = newPoo();
   poo.state = 'flush';
   poo.path = [{ x: CX, y: world.rows[0].y, j: world.rows[0].nodes[2] }];
@@ -1048,11 +1420,13 @@ function startTrip(d) {
   mode = 'trip';
   Sound.play('flush');
   Sound.buzz([30, 40, 30]);
+  if (L.tip) sayOnce('tip:' + L.id, L.tip, 1300);
   ui.menu.hidden = true;
   ui.done.hidden = true;
   ui.hud.hidden = false;
   ui.left.hidden = ui.right.hidden = false;
-  ui.goal.textContent = d.emoji;
+  ui.goal.textContent = trip.dest.emoji;
+  ui.duckN.textContent = '0';
 }
 
 function toMenu() {
@@ -1079,6 +1453,8 @@ function choose(side) {
 
 function takeTurn(side) {
   const wp = poo.path.shift();
+  poo.prevNode = poo.curNode;   // a pump blows the poo back up to the turn before this one
+  poo.curNode = wp.j;
   poo.path.unshift(...route(wp.j, side));
 }
 
@@ -1098,6 +1474,7 @@ function moveAlong(dist) {
     if (d > dist) { poo.x += dx / d * dist; poo.y += dy / d * dist; return; }
     poo.x = wp.x; poo.y = wp.y; dist -= d;
     if (wp.j) {
+      if (poo.state === 'whoosh') { poo.state = 'ride'; poo.speed = 15; poo.rideT = 1; }
       if (wp.j.type === 'bend') { takeTurn(Object.keys(wp.j.outs)[0]); continue; }
       if (!pending) { startWait(); return; }
       resolveJunction();
@@ -1105,8 +1482,26 @@ function moveAlong(dist) {
     }
     poo.path.shift();
     if (wp.ev === 'bonk') { bonk(); return; }
+    if (wp.ev === 'pump') { pumpBack(wp.n); return; }
     if (wp.ev === 'end') { poo.state = 'exit'; trip.irisT = 0; Sound.play('whee'); return; }
   }
+}
+
+// A red pump pipe blows the poo back up the way it came, to the turn before, where it can choose again.
+function pumpBack(n) {
+  const p = poo.prevNode, X = laneX(n.lane);
+  poo.state = 'whoosh';
+  poo.boostT = 0;
+  if (poo.tp) popTP();
+  pending = null;
+  poo.path = [{ x: poo.x, y: n.y }, { x: X, y: n.y }, ...(p ? [{ x: X, y: p.y }, { x: laneX(p.lane), y: p.y, j: p }] : [{ x: X, y: n.y, j: n }])];
+  trip.shake = 0.25;
+  Sound.play('whoosh');
+  Sound.buzz([40, 30, 40]);
+  setTimeout(() => Sound.say(said.has('pumped') ? 'Whoosh!' : 'Whoosh! Back up!'), 150);
+  said.add('pumped');
+  for (let i = 0; i < 16; i++)
+    parts.push({ x: poo.x + (Math.random() - 0.5) * 16, y: poo.y + 8, vx: (Math.random() - 0.5) * 50, vy: -20 - Math.random() * 60, g: 90, life: 0.6, c: i % 2 ? '#ffffff' : '#ffb4a8', w: 1, h: 2 });
 }
 
 function startWait() {
@@ -1145,9 +1540,20 @@ function popTP() {
 
 function checkItems() {
   for (const it of world.items) {
-    if (it.used || it.type === 'sign') continue;
+    if (it.used || it.type === 'sign' || it.type === 'pump' || it.type === 'gate') continue;
     const d = Math.hypot(it.x - poo.x, it.y - poo.y);
-    if (it.type === 'water' && d < 13) {
+    if (it.type === 'duck' && d < 12) {
+      it.used = true;
+      trip.ducks++;
+      ui.duckN.textContent = trip.ducks;
+      ui.duckPill.classList.remove('bump'); void ui.duckPill.offsetWidth; ui.duckPill.classList.add('bump');
+      Sound.play('squeak');
+      Sound.buzz([15]);
+      for (let i = 0; i < 12; i++) {
+        const a = i / 12 * Math.PI * 2;
+        parts.push({ x: it.x, y: it.y, vx: Math.cos(a) * 45, vy: Math.sin(a) * 45 - 15, g: 60, life: 0.5, c: i % 2 ? '#ffd43b' : '#fff6c8', w: 1, h: 1 });
+      }
+    } else if (it.type === 'water' && d < 13) {
       it.used = true;
       if (poo.tp) popTP();
       poo.boostT = BOOST_TIME;
@@ -1177,14 +1583,28 @@ function updateTrip(dt) {
     p.rideT += dt;
     if (p.boostT > 0) p.boostT -= dt;
     if (p.clogT > 0) { p.clogT -= dt; if (p.clogT <= 0) popTP(); }
-    let target = BASE_SPEED;
-    if (p.boostT > 0) target = BASE_SPEED + (BOOST_SPEED - BASE_SPEED) * Math.min(1, p.boostT / 0.8);
+    const base = BASE_SPEED * level.speed;
+    let target = base;
+    if (p.boostT > 0) target = base + (BOOST_SPEED - base) * Math.min(1, p.boostT / 0.8);
     if (p.clogT > 0) target = CLOG_SPEED;
     const wp = p.path[0];
     if (wp && wp.j && wp.j.type === 'T' && !pending) target = Math.min(target, 21 + Math.hypot(wp.x - p.x, wp.y - p.y) * 1.3);
     if (p.rideT < 1.2) target = Math.min(target, 15 + p.rideT * 82);
     p.speed += (target - p.speed) * Math.min(1, dt * (p.clogT > 0 ? 12 : 4));
-    moveAlong(p.speed * dt);
+    let dist = p.speed * dt;
+    // a shut gate ahead: stop in front of it and wait for it to open
+    const gate = p.dirY > 0.5 && world.items.find(it => it.type === 'gate' && Math.abs(it.x - p.x) < 1 && it.y > p.y && it.y - p.y < 40 && gateShut(it) > 0.1);
+    if (gate && gate.y - 17 - p.y < dist) {
+      dist = Math.max(0, gate.y - 17 - p.y);
+      p.speed = 0;
+      if (!p.blocked) {
+        Sound.play('clunk');
+        if (poo.tp) popTP();
+        sayOnce('gate', 'Wait for the gate!', 100);
+      }
+      p.blocked = true;
+    } else p.blocked = false;
+    moveAlong(dist);
     checkItems();
     if (p.tp) {
       p.tp.x = p.x + p.dirX * 22;
@@ -1194,8 +1614,20 @@ function updateTrip(dt) {
     }
     if (p.boostT > 0 && Math.random() < dt * 30)
       parts.push({ x: p.x + (Math.random() - 0.5) * 14, y: p.y - p.dirY * 10, vx: 0, vy: -p.dirY * 40, g: 0, life: 0.25, c: C.waterLight, w: 1, h: 4 });
+  } else if (p.state === 'whoosh') {
+    p.speed = WHOOSH_SPEED;
+    moveAlong(p.speed * dt);
+    checkItems();
+    if (Math.random() < dt * 40)
+      parts.push({ x: p.x + (Math.random() - 0.5) * 16, y: p.y + 12, vx: 0, vy: 60, g: 0, life: 0.25, c: '#ffd0c8', w: 1, h: 4 });
   } else if (p.state === 'wait') {
     p.waitT += dt;
+    if (level.hurry && p.waitT > HURRY_WAIT) {   // too slow: the poo picks a way itself
+      pending = Math.random() < 0.5 ? 'L' : 'R';
+      Sound.say(said.has('picked') ? 'This way!' : 'Too slow! I pick this way!');
+      said.add('picked');
+      resolveJunction();
+    }
   } else if (p.state === 'bonk') {
     p.bonkT -= dt;
     if (p.bonkT <= 0) { p.state = 'ride'; p.speed = 15; }
@@ -1221,7 +1653,8 @@ function updateParts(dt) {
 
 /* ======== the holiday spot ======== */
 function startDest() {
-  dest = { d: trip.dest, t: 0, phase: 'open', hatOff: null, hatV: 0, hopT: 0, landT: 0, G: 630 };
+  dest = { d: trip.dest, t: 0, phase: 'open', hatOff: null, hatV: 0, hopT: 0, landT: 0, G: 630,
+    ducks: trip.ducks, maxDucks: world.maxDucks, allDucks: world.maxDucks > 0 && trip.ducks >= world.maxDucks };
   layoutDest();
   mode = 'dest';
   parts = [];
@@ -1271,7 +1704,9 @@ function updateDest(dt) {
       Sound.play('ding');
       setTimeout(() => { if (dest === s) Sound.play('fanfare'); }, 250);
       setTimeout(() => { if (dest === s) Sound.say(s.d.say); }, 900);
+      if (s.allDucks) setTimeout(() => { if (dest === s) Sound.say('And you got all the ducks!'); }, 2600);
       if (!visited.includes(s.d.id)) { visited.push(s.d.id); store.set('visited', visited); }
+      if (s.ducks > (bestDucks[s.d.id] || 0)) { bestDucks[s.d.id] = s.ducks; store.set('ducks', bestDucks); }
     }
   } else if (s.phase === 'party') {
     s.landT += dt; s.hopT += dt;
@@ -1281,6 +1716,10 @@ function updateDest(dt) {
     }
     if (s.landT > 0.9 && ui.done.hidden) {
       ui.doneTitle.textContent = `${s.d.emoji} ${s.d.name}!`;
+      ui.doneDucks.textContent = `🦆 ${s.ducks} / ${Math.max(s.ducks, s.maxDucks)}` + (s.allDucks ? ' 👑' : '');
+      const i = LEVELS.indexOf(level), next = LEVELS[i + 1];
+      ui.next.hidden = !next;
+      if (next) ui.next.textContent = `Next ${destOf(next).emoji}`;
       ui.done.hidden = false;
     }
   }
@@ -1416,7 +1855,7 @@ function drawBigFinds(top, bot, x0, x1, ox, oy, tops) {
     if (hash(ix + 40, iy + 40) > 0.3) continue;
     const x = ix * G + 30 + Math.floor(hash(ix, iy + 41) * 90) + ox, wy = iy * G + 40 + Math.floor(hash(ix, iy + 42) * 70);
     const k = layerAt(tops, x - ox, wy), y = wy + oy;
-    if (wy < tops[1] + 40 || (k < 3 && wy > layerEdge(tops, k + 1, x - ox) - 40)) continue;
+    if (wy < tops[1] + 40 || (k < 3 && wy > layerEdge(tops, k + 1, x - ox) - 40) || inCave(x - ox, wy, 30)) continue;
     if (k === 1) {
       ell(g, '#25507e', x, y, 23, 11);
       ell(g, '#3d7fc4', x, y, 22, 10);
@@ -1457,6 +1896,7 @@ function drawFinds(top, bot, x0, x1, ox, oy, tops) {
       const rare = hash(ix + 11, iy + 3000) < 0.008;
       if (!rare && hash(ix, iy) > 0.14) continue;
       const x = ix * G + 10 + Math.floor(hash(ix + 300, iy) * 20), y = iy * G + 10 + Math.floor(hash(ix, iy + 500) * 20);
+      if (inCave(x, y - 8, 12)) continue;
       const k = layerAt(tops, x, y), list = rare ? LAYERS[k].rare : LAYERS[k].finds;
       const name = list[Math.floor(hash(ix + 7, iy + 9) * list.length)];
       if (name === 'chest' && Math.floor(T * 3 + ix) % 5 === 0) R(g, '#fff6c8', x + ox - 6 + (ix % 3) * 5, y - 22 + oy, 1, 1);
@@ -1467,6 +1907,217 @@ function drawFinds(top, bot, x0, x1, ox, oy, tops) {
       }
       drawProp(g, IMG[name], x + ox, y + oy, 1, hash(ix, iy + 7) < 0.5);
     }
+  }
+}
+
+/* ======== depth: layers that scroll slower or faster than the pipes ======== */
+// The dirt the pipes run through has caves in it. Through them you see two rock layers further back that scroll
+// slower than the pipes: the far one (FAR_F of the camera speed) with rock pillars and glow-worms, the middle one
+// (MID_F) with rock ledges, old sewer pipes, waterfalls and glowing crystals. In front, dark rocks, roots and drips
+// slide past the screen edges faster (FORE_F), so the pipes look deep underground.
+const FAR_F = 0.25, MID_F = 0.55, FORE_F = 1.45;
+const CAVE_G = 92;
+const DEPTH_HAZE = '#121a36';   // the back layers fade towards this deep blue, so they look far away
+function mixHex(a, b, t) {
+  const A = rgb(a), B = rgb(b);
+  return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+const shadeCache = new Map();
+function shadeOf(k, dark) {   // a soil layer's colour, darkened for the layers behind
+  const key = k + ':' + dark;
+  if (!shadeCache.has(key)) shadeCache.set(key, mixHex(LAYERS[k].base, DEPTH_HAZE, dark));
+  return shadeCache.get(key);
+}
+function zoneAt(y, tops) { let k = 0; while (k < 3 && y >= tops[k + 1]) k++; return k; }
+// colour of a back layer at depth y, blended across the soil borders
+function depthCol(y, dark, tops) {
+  const k = zoneAt(y, tops);
+  if (k < 3 && y > tops[k + 1] - 50) return mixHex(shadeOf(k, dark), shadeOf(k + 1, dark), (y - tops[k + 1] + 50) / 50 * 0.5);
+  if (k > 0 && y < tops[k] + 50) return mixHex(shadeOf(k - 1, dark), shadeOf(k, dark), 0.5 + (y - tops[k]) / 50 * 0.5);
+  return shadeOf(k, dark);
+}
+
+// Caves: a few overlapping ellipses per CAVE_G cell, more of them outside the pipe field than inside it.
+const caveMemo = new Map();
+function caveAt(ix, iy) {
+  const key = ix + ',' + iy;
+  if (caveMemo.has(key)) return caveMemo.get(key);
+  let parts = null;
+  const cx = ix * CAVE_G + 18 + hash(ix + 900, iy) * 56, cy = iy * CAVE_G + 18 + hash(ix, iy + 900) * 56;
+  const outside = cx < -10 || cx > FIELD_W + 10;
+  if (hash(ix + 901, iy + 901) < (outside ? 0.8 : 0.5) && cy > FLOOR_H + 80 && (!world || cy < world.exitY - 70)) {
+    const rx = 26 + hash(ix + 902, iy) * 26, ry = 16 + hash(ix, iy + 902) * 16;
+    parts = [{ x: cx, y: cy, rx, ry }];
+    if (hash(ix + 903, iy) < 0.75) parts.push({ x: cx + (hash(ix + 904, iy) - 0.5) * rx * 1.7, y: cy + (hash(ix, iy + 904) - 0.35) * ry, rx: rx * 0.65, ry: ry * 0.8 });
+    if (hash(ix + 905, iy) < 0.4) parts.push({ x: cx + (hash(ix + 906, iy) - 0.5) * rx * 1.4, y: cy - ry * 0.5, rx: rx * 0.5, ry: ry * 0.6 });
+  }
+  caveMemo.set(key, parts);
+  return parts;
+}
+function cavesIn(top, bot, x0, x1) {
+  const out = [];
+  for (let iy = Math.floor((top - 60) / CAVE_G); iy * CAVE_G < bot + 60; iy++)
+    for (let ix = Math.floor((x0 - 60) / CAVE_G); ix * CAVE_G < x1 + 60; ix++) {
+      const c = caveAt(ix, iy);
+      if (c) out.push(c);
+    }
+  return out;
+}
+function inCave(x, y, m = 0) {
+  const ix = Math.floor(x / CAVE_G), iy = Math.floor(y / CAVE_G);
+  for (let j = iy - 1; j <= iy + 1; j++) for (let i = ix - 1; i <= ix + 1; i++) {
+    const c = caveAt(i, j);
+    if (c && c.some(p => ((x - p.x) / (p.rx + m)) ** 2 + ((y - p.y) / (p.ry + m)) ** 2 < 1)) return true;
+  }
+  return false;
+}
+// Cuts the caves out of the dirt (drawn on the off-screen canvas), leaving a dark rim round each.
+function punchCaves(top, bot, ox, oy) {
+  const caves = cavesIn(top, bot, -ox, W - ox), tops = layerTops();
+  for (const c of caves) for (const p of c) ell(g, LAYERS[zoneAt(p.y, tops)].line, p.x + ox, p.y + oy, p.rx + 2, p.ry + 2);
+  g.globalCompositeOperation = 'destination-out';
+  for (const c of caves) for (const p of c) ell(g, '#000', p.x + ox, p.y + oy, p.rx, p.ry);
+  // a shadow under each cave's roof, drawn only into the holes
+  g.globalCompositeOperation = 'destination-over';
+  g.globalAlpha = 0.35;
+  for (const c of caves) for (const p of c) ell(g, '#06030a', p.x + ox, p.y - p.ry * 0.62 + oy, p.rx, p.ry * 0.5);
+  g.globalAlpha = 1;
+  g.globalCompositeOperation = 'source-over';
+}
+
+let nearC = null, nearG = null;
+function drawNear(top, bot, ox, oy) {
+  if (!nearC || nearC.width !== W || nearC.height !== H) {
+    nearC = document.createElement('canvas');
+    nearC.width = W; nearC.height = H;
+    nearG = nearC.getContext('2d');
+  }
+  nearG.clearRect(0, 0, W, H);
+  const main = g;
+  g = nearG;
+  try { drawUnderground(top, bot, ox, oy); punchCaves(top, bot, ox, oy); } finally { g = main; }
+  g.drawImage(nearC, 0, 0);
+}
+
+// Far back: dark rock, pillars that narrow and widen, and twinkling glow-worms (more of them deeper down).
+function drawFar(sy0, ox) {
+  const tops = layerTops(), deep = world ? world.exitY : 3000, f0 = cam.y * FAR_F;
+  for (let sy = sy0; sy < H; sy += 4) R(g, depthCol(cam.y + sy, 0.52, tops), 0, sy, W, 4);
+  const PW = 58;
+  for (let ix = Math.floor(-ox / PW) - 1; ix * PW < W - ox; ix++) {
+    if (hash(ix, 4100) > 0.45) continue;
+    const cx = ix * PW + 10 + hash(ix, 4101) * 36 + ox, w0 = 7 + hash(ix, 4102) * 12;
+    for (let sy = sy0 - (sy0 % 2); sy < H; sy += 2) {
+      const fy = f0 + sy, cell = Math.floor(fy / 96), u = fy / 96 - cell;
+      if (hash(ix, cell + 4200) > 0.7) continue;
+      const up = hash(ix, cell + 4199) <= 0.7, down = hash(ix, cell + 4201) <= 0.7;
+      let w = w0 + Math.sin(fy * 0.06 + ix) * 2.5;
+      if (!up && u < 0.4) w *= u / 0.4;            // a stalagmite tip at the top of a pillar piece
+      if (!down && u > 0.6) w *= (1 - u) / 0.4;    // and a stalactite tip at the bottom
+      if (w < 1) continue;
+      const wy = cam.y + sy;
+      R(g, depthCol(wy, 0.36, tops), cx - w / 2, sy, w, 2);
+      R(g, depthCol(wy, 0.24, tops), cx - w / 2, sy, 1, 2);
+    }
+  }
+  const GW = 20;
+  for (let iy = Math.floor((f0 + sy0) / GW); iy * GW < f0 + H; iy++) for (let ix = Math.floor(-ox / GW); ix * GW < W - ox; ix++) {
+    const wy = cam.y + iy * GW - f0, dens = 0.03 + 0.16 * Math.max(0, Math.min(1, wy / deep));
+    if (hash(ix + 4300, iy) > dens || wy < FLOOR_H + 40) continue;
+    const tw = Math.sin(T * (1 + hash(ix, iy + 4301) * 2) + ix * 3 + iy);
+    if (tw < -0.3) continue;
+    const x = ix * GW + Math.floor(hash(ix, iy + 4302) * GW) + ox, y = iy * GW + Math.floor(hash(ix + 4303, iy) * GW) - f0;
+    R(g, tw > 0.6 ? '#c8fff2' : '#5fd8c4', x, y, 1, 1);
+  }
+}
+
+// The middle layer: rock ledges with stalactites or stalagmites, old sewer pipes, waterfalls, crystals.
+function drawMid(sy0, ox) {
+  const tops = layerTops(), m0 = cam.y * MID_F, G = 76;
+  for (let iy = Math.floor((m0 + sy0 - 40) / G); iy * G < m0 + H + 40; iy++) for (let ix = Math.floor(-ox / G) - 1; ix * G < W - ox + G; ix++) {
+    if (hash(ix + 60, iy + 6000) > 0.8) continue;
+    const x = Math.round(ix * G + 12 + hash(ix, iy + 6001) * 50 + ox), y = Math.round(iy * G + 12 + hash(ix, iy + 6002) * 50 - m0);
+    const wy = cam.y + y;
+    if (wy < FLOOR_H + 50 || y < sy0 - 30) continue;
+    const k = zoneAt(wy, tops), rock = shadeOf(k, 0.2), lit = shadeOf(k, 0.04), kind = hash(ix, iy + 6003);
+    const lw = 26 + Math.floor(hash(ix + 61, iy) * 26);
+    if (kind < 0.55) {   // a ledge with stalactites under it, or stalagmites on it
+      const hang = kind < 0.3;
+      R(g, rock, x - lw / 2, y, lw, 5);
+      R(g, lit, x - lw / 2, y, lw, 1);
+      for (let i = 0; i < 4; i++) {
+        const sx = x - lw / 2 + 4 + i * (lw - 8) / 3, len = 5 + Math.floor(hash(ix + i, iy + 6004) * 12);
+        for (let d = 0; d < len; d++) {
+          const w = Math.max(1, Math.round(4 * (1 - d / len)));
+          R(g, rock, sx - (w >> 1), hang ? y + 5 + d : y - 1 - d, w, 1);
+        }
+      }
+    } else if (kind < 0.72) {   // an old sewer pipe running across, with a drip
+      const pw = lw * 2, pc = mixHex('#3f9c86', DEPTH_HAZE, 0.45), pl = mixHex('#86dcc2', DEPTH_HAZE, 0.45);
+      R(g, mixHex('#1d2b2a', DEPTH_HAZE, 0.35), x - pw / 2, y - 7, pw, 14);
+      R(g, pc, x - pw / 2, y - 6, pw, 12);
+      R(g, pl, x - pw / 2, y - 5, pw, 2);
+      for (let i = 8; i < pw; i += 22) R(g, mixHex('#1d2b2a', DEPTH_HAZE, 0.35), x - pw / 2 + i, y - 8, 3, 16);
+      const ph = (T * 0.9 + hash(ix, iy)) % 1;
+      R(g, '#5f8fb0', x + 4, y + 7 + ph * 24, 1, 2);
+    } else if (kind < 0.86 && k <= 1) {   // a waterfall pouring out of the rock
+      const len = 34 + Math.floor(hash(ix + 62, iy) * 30);
+      R(g, rock, x - 9, y - 4, 18, 5);
+      R(g, '#2f5f86', x - 2, y, 5, len);
+      for (let i = 0; i < 5; i++) R(g, '#8fc4ea', x - 2 + (i % 5), y + ((T * 70 + i * 13) % len), 1, 3);
+      ell(g, '#2f5f86', x, y + len, 9, 2.5);
+      R(g, '#8fc4ea', x - 5 + Math.round(Math.sin(T * 6) * 2), y + len - 2, 2, 1);
+    } else if (kind < 0.86) {   // glowing crystals deep down
+      g.globalAlpha = 0.18 + Math.sin(T * 2 + ix) * 0.08;
+      ell(g, k === 3 ? '#b07fff' : '#7fe9ff', x, y - 4, 14, 10);
+      g.globalAlpha = 1;
+      for (let i = 0; i < 3; i++) {
+        const cx = x - 6 + i * 6, h = 6 + Math.floor(hash(ix + i, iy + 6005) * 7), c = k === 3 ? '#9a6ad8' : '#5fc8e0';
+        for (let d = 0; d < h; d++) R(g, d < 2 ? '#e6f8ff' : c, cx - Math.min(2, d >> 1), y - h + d, Math.min(2, d >> 1) * 2 + 1, 1);
+      }
+    } else {   // a heap of boulders
+      for (let i = 0; i < 3; i++) ell(g, i === 1 ? lit : rock, x - 8 + i * 8, y - (i === 1 ? 3 : 0), 6 + (i === 1 ? 2 : 0), 5);
+    }
+  }
+}
+
+// In front: dark rock edges and roots on both sides of the screen, and dust or glowing spores and drips falling.
+let motes = [], lastCamY = 0;
+function makeMotes() {
+  motes = Array.from({ length: 26 }, (_, i) => ({ x: Math.random(), y: Math.random() * H, v: 3 + Math.random() * 7, drip: i % 6 === 0, ph: i * 1.7 }));
+}
+function updateMotes(dt) {
+  const dy = (cam.y - lastCamY) * (FORE_F - 1);
+  lastCamY = cam.y;
+  for (const m of motes) {
+    m.y += (m.drip ? 110 : m.v) * dt - dy;
+    if (m.y > H + 4) { m.y -= H + 8; m.x = Math.random(); }
+    if (m.y < -4) { m.y += H + 8; m.x = Math.random(); }
+  }
+}
+function edgeW(fy, side) {
+  const s = side * 97.3, cell = Math.floor(fy / 120), u = fy / 120 - cell;
+  const bump = hash(cell, 7000 + side) < 0.35 ? Math.sin(u * Math.PI) * (8 + hash(cell, 7001 + side) * 14) : 0;
+  return Math.max(0, Math.round(4 + 4 * Math.sin(fy * 0.021 + s) + 3 * Math.sin(fy * 0.067 + s * 2) + bump));
+}
+function drawFore(ox) {
+  const f0 = cam.y * FORE_F, maxW = Math.max(10, ox + 8), deep = world ? world.exitY : 3000;
+  for (let sy = 0; sy < H; sy += 2) {
+    if (cam.y + sy < FLOOR_H + 4) continue;
+    const fy = f0 + sy;
+    for (const side of [0, 1]) {
+      const w = Math.min(maxW, edgeW(fy, side));
+      if (!w) continue;
+      R(g, '#0e0805', side ? W - w : 0, sy, w, 2);
+      R(g, '#2a1a10', side ? W - w - 1 : w, sy, 1, 2);
+    }
+  }
+  for (const m of motes) {
+    const wy = cam.y + m.y;
+    if (wy < FLOOR_H + 10) continue;
+    const x = m.x * W + Math.sin(T * 0.8 + m.ph) * 3;
+    if (m.drip) R(g, '#9fd4ff', x, m.y, 1, 3);
+    else R(g, wy / deep > 0.55 ? (Math.sin(T * 3 + m.ph) > 0 ? '#9ffff0' : '#4fbfae') : '#8a6a52', x, m.y, 1, 1);
   }
 }
 
@@ -1494,43 +2145,54 @@ function drawFloor(ox, oy) {
   drawProp(g, IMG.plant, CX + 80 + ox, 2 + oy);
 }
 
+const PIPE_PAL = { ink: C.pipeInk, body: C.pipe, light: C.pipeLight, dark: C.pipeDark, inside: C.inside };
+const PUMP_PAL = { ink: '#3a0f0c', body: '#d9483b', light: '#ff9a8a', dark: '#9a2a22', inside: '#4a1a1c' };
 function drawPipes(segs, ox, oy, t) {
-  const RR = PIPE_R, r = PIPE_IN;
+  const RR = PIPE_R, r = PIPE_IN, pal = s => s.pump ? PUMP_PAL : PIPE_PAL;
   const box = (s, e, c) => R(g, c, s.x1 - e + ox, s.y1 - e + oy, s.x2 - s.x1 + 2 * e, s.y2 - s.y1 + 2 * e);
-  for (const s of segs) box(s, RR, C.pipeInk);
-  for (const s of segs) box(s, RR - 1, C.pipe);
+  for (const s of segs) box(s, RR, pal(s).ink);
+  for (const s of segs) box(s, RR - 1, pal(s).body);
   for (const s of segs) {
+    const P = pal(s);
     if (s.x1 === s.x2) {
-      R(g, C.pipeLight, s.x1 - RR + 2 + ox, s.y1 + oy, 2, s.y2 - s.y1);
-      R(g, C.pipeLight, s.x1 - RR + 4 + ox, s.y1 + oy, 1, s.y2 - s.y1);
-      R(g, C.pipeDark, s.x1 + RR - 4 + ox, s.y1 + oy, 2, s.y2 - s.y1);
+      R(g, P.light, s.x1 - RR + 2 + ox, s.y1 + oy, 2, s.y2 - s.y1);
+      R(g, P.light, s.x1 - RR + 4 + ox, s.y1 + oy, 1, s.y2 - s.y1);
+      R(g, P.dark, s.x1 + RR - 4 + ox, s.y1 + oy, 2, s.y2 - s.y1);
     } else {
-      R(g, C.pipeLight, s.x1 + ox, s.y1 - RR + 2 + oy, s.x2 - s.x1, 2);
-      R(g, C.pipeLight, s.x1 + ox, s.y1 - RR + 4 + oy, s.x2 - s.x1, 1);
-      R(g, C.pipeDark, s.x1 + ox, s.y1 + RR - 4 + oy, s.x2 - s.x1, 2);
+      R(g, P.light, s.x1 + ox, s.y1 - RR + 2 + oy, s.x2 - s.x1, 2);
+      R(g, P.light, s.x1 + ox, s.y1 - RR + 4 + oy, s.x2 - s.x1, 1);
+      R(g, P.dark, s.x1 + ox, s.y1 + RR - 4 + oy, s.x2 - s.x1, 2);
     }
   }
   for (const s of segs) {
-    const vert = s.x1 === s.x2, len = vert ? s.y2 - s.y1 : s.x2 - s.x1;
+    const P = pal(s), vert = s.x1 === s.x2, len = vert ? s.y2 - s.y1 : s.x2 - s.x1;
     for (let k = 33; k < len - 21; k += 66) {
       if (vert) {
         const x = s.x1 + ox, y = s.y1 + k + oy;
-        R(g, C.pipeInk, x - RR - 2, y - 3, RR * 2 + 4, 7);
-        R(g, C.pipe, x - RR - 1, y - 2, RR * 2 + 2, 5);
-        R(g, C.pipeLight, x - RR - 1, y - 2, RR * 2 + 2, 1);
-        R(g, C.pipeDark, x - RR - 1, y + 2, RR * 2 + 2, 1);
-        R(g, C.pipeInk, x - RR + 1, y, 1, 1); R(g, C.pipeInk, x + RR - 2, y, 1, 1);
+        R(g, P.ink, x - RR - 2, y - 3, RR * 2 + 4, 7);
+        R(g, P.body, x - RR - 1, y - 2, RR * 2 + 2, 5);
+        R(g, P.light, x - RR - 1, y - 2, RR * 2 + 2, 1);
+        R(g, P.dark, x - RR - 1, y + 2, RR * 2 + 2, 1);
+        R(g, P.ink, x - RR + 1, y, 1, 1); R(g, P.ink, x + RR - 2, y, 1, 1);
       } else {
         const x = s.x1 + k + ox, y = s.y1 + oy;
-        R(g, C.pipeInk, x - 3, y - RR - 2, 7, RR * 2 + 4);
-        R(g, C.pipe, x - 2, y - RR - 1, 5, RR * 2 + 2);
-        R(g, C.pipeLight, x - 2, y - RR - 1, 1, RR * 2 + 2);
-        R(g, C.pipeDark, x + 2, y - RR - 1, 1, RR * 2 + 2);
-        R(g, C.pipeInk, x, y - RR + 1, 1, 1); R(g, C.pipeInk, x, y + RR - 2, 1, 1);
+        R(g, P.ink, x - 3, y - RR - 2, 7, RR * 2 + 4);
+        R(g, P.body, x - 2, y - RR - 1, 5, RR * 2 + 2);
+        R(g, P.light, x - 2, y - RR - 1, 1, RR * 2 + 2);
+        R(g, P.dark, x + 2, y - RR - 1, 1, RR * 2 + 2);
+        R(g, P.ink, x, y - RR + 1, 1, 1); R(g, P.ink, x, y + RR - 2, 1, 1);
       }
     }
   }
-  for (const s of segs) if (!s.water) box(s, r, C.inside);
+  for (const s of segs) if (!s.water) box(s, r, pal(s).inside);
+  // pump pipes: arrows inside that keep running upwards
+  for (const s of segs) if (s.pump) {
+    const len = s.y2 - s.y1;
+    for (let k = 0; k < 3; k++) {
+      const y = s.y2 - ((t * 34 + k * len / 3) % len) + oy, x = s.x1 + ox;
+      for (let i = 0; i < 6; i++) { R(g, '#ff9a8a', x - i - 1, y + i, 2, 2); R(g, '#ff9a8a', x + i - 1, y + i, 2, 2); }
+    }
+  }
   for (const s of segs) if (s.water) {
     box(s, r, C.water);
     const h = s.y2 - s.y1 + 2 * r;
@@ -1558,6 +2220,8 @@ function pooLook(p) {
   if (p.state === 'idle') { look = [0, -1, 0, 1][Math.floor(T / 1.5) % 4]; sq = [0, 0.25][Math.floor(T * 2) % 2]; }
   else if (p.state === 'flush' || (p.state === 'ride' && p.rideT < 0.6)) { flip = Math.floor(T * 10) % 2 === 0; eyes = 'wide'; mouth = 'o'; }
   else if (p.state === 'bonk') { eyes = 'dizzy'; mouth = 'wavy'; sq = p.bonkT > BONK_TIME - 0.2 ? 0.5 : 0; }
+  else if (p.state === 'whoosh') { eyes = 'wide'; mouth = 'open'; sq = -0.5; flip = Math.floor(T * 12) % 2 === 0; }
+  else if (p.blocked) { eyes = 'squint'; mouth = 'wavy'; look = Math.floor(T * 2) % 2 ? 1 : 0; sq = Math.floor(T * 4) % 2 ? 0.25 : 0; }
   else if (p.clogT > 0) { eyes = 'squint'; mouth = 'grit'; sq = Math.floor(T * 16) % 2 ? 0.25 : 0; }
   else if (p.boostT > 0) { eyes = 'wide'; mouth = 'open'; sq = -0.5; }
   else if (p.state === 'wait') { look = Math.sin(T * 3) > 0 ? 1 : -1; }
@@ -1578,24 +2242,98 @@ function drawHints(ox, oy) {
   }
 }
 
+function drawDuck(it, ox, oy, glow) {
+  const x = it.x + ox, y = it.y + oy + Math.round(Math.sin(T * 3 + it.ph) * 1.5);
+  if (glow) {
+    g.globalAlpha = 0.3 + Math.sin(T * 4 + it.ph) * 0.1;
+    ell(g, '#fff3a0', x, y, 11, 10);
+    g.globalAlpha = 1;
+  }
+  drawCentered(g, SPR.duck, x, y, Math.sin(T * 0.7 + it.ph) > 0);
+}
+// A striped gate plate that slides across the pipe from a box on its left, with a red or green light on the right.
+function gateLight(it, ox, oy) {
+  const x = it.x - PIPE_R - 9 + ox, y = it.y - 13 + oy, shut = gateShut(it) > 0.1;
+  R(g, C.pipeInk, x - 1, y - 1, 6, 6);
+  R(g, shut ? '#ff4040' : '#5aff6e', x, y, 4, 4);
+  R(g, shut ? '#ffb0b0' : '#d0ffd8', x, y, 2, 1);
+}
+function drawGate(it, ox, oy) {
+  const x = it.x + ox, y = it.y + oy, c = gateShut(it), bw = Math.round(PIPE_IN * 2 * c);
+  R(g, C.pipeInk, x - PIPE_R - 13, y - 8, 15, 16);   // the box the plate slides out of
+  R(g, '#9aa4b2', x - PIPE_R - 12, y - 7, 13, 14);
+  R(g, '#cfd6df', x - PIPE_R - 12, y - 7, 13, 1);
+  R(g, '#6b7480', x - PIPE_R - 12, y + 5, 13, 2);
+  for (let i = 0; i < 13; i += 4) R(g, '#ffd43b', x - PIPE_R - 12 + i, y - 2, 2, 4);
+  R(g, C.pipeInk, x + PIPE_R - 2, y - 6, 6, 12);       // the slot on the other side
+  R(g, '#6b7480', x + PIPE_R - 1, y - 5, 4, 10);
+  if (bw > 0) {
+    R(g, '#1d1d1d', x - PIPE_IN, y - 5, bw, 10);
+    for (let i = 0; i < bw; i++) for (let j = 0; j < 8; j++)
+      if ((i + j) % 8 < 4) R(g, '#ffd43b', x - PIPE_IN + i, y - 4 + j, 1, 1);
+  }
+  gateLight(it, ox, oy);
+}
+// The pump at the bottom of a red pipe: a chunky box with a spinning fan.
+function drawPump(it, ox, oy) {
+  const x = it.x + ox, y = it.y + oy;
+  R(g, PUMP_PAL.ink, x - 18, y - 7, 36, 17);
+  R(g, PUMP_PAL.body, x - 17, y - 6, 34, 15);
+  R(g, PUMP_PAL.light, x - 17, y - 6, 34, 1);
+  R(g, PUMP_PAL.dark, x - 17, y + 7, 34, 2);
+  ell(g, PUMP_PAL.ink, x, y + 1, 6, 6);
+  const a = T * 18;
+  for (let d = -4; d <= 4; d++) {
+    R(g, '#ffe0d8', x + Math.round(Math.cos(a) * d), y + 1 + Math.round(Math.sin(a) * d), 1, 1);
+    R(g, '#ffe0d8', x + Math.round(Math.cos(a + 1.57) * d), y + 1 + Math.round(Math.sin(a + 1.57) * d), 1, 1);
+  }
+  R(g, Math.floor(T * 3) % 2 ? '#ffe14d' : '#ff8a1a', x + 12, y - 3, 2, 2);
+}
+
+// Dark levels: everything outside the poo's lamp goes nearly black; the toilet end stays lit until you are deeper.
+let darkC = null;
+function drawDark(ox, oy) {
+  const a = Math.max(0, Math.min(1, (cam.y - 40) / 260)) * 0.9;
+  if (a <= 0) return;
+  if (!darkC || darkC.width !== W || darkC.height !== H) { darkC = document.createElement('canvas'); darkC.width = W; darkC.height = H; }
+  const d = darkC.getContext('2d');
+  d.globalCompositeOperation = 'source-over';
+  d.globalAlpha = 1;
+  d.clearRect(0, 0, W, H);
+  d.globalAlpha = a;
+  d.fillStyle = '#05030a';
+  d.fillRect(0, 0, W, H);
+  d.globalCompositeOperation = 'destination-out';
+  const px = poo.x + ox, py = poo.y + oy - 6, r = LAMP_R + Math.sin(T * 7) * 1.5;
+  for (const [rr, al] of [[r, 0.4], [r - 9, 0.6], [r - 20, 1]]) { d.globalAlpha = al; ell(d, '#000', px, py, rr, rr); }
+  d.globalAlpha = 1;
+  ell(d, '#000', CX + ox, world.exitY + oy - 20, 26, 40);   // light from the end of the pipes
+  d.globalCompositeOperation = 'source-over';
+  g.drawImage(darkC, 0, 0);
+}
+
 function renderTrip() {
   const sh = trip && trip.shake > 0 ? Math.round((Math.random() - 0.5) * 4) : 0;
   const ox = offX + sh, oy = Math.round(-cam.y);
   const top = cam.y - 4, bot = cam.y + H + 4;
   R(g, '#2a1a10', 0, 0, W, H);
-  drawUnderground(top, bot, ox, oy);
+  const sy0 = Math.max(0, Math.round(FLOOR_H + oy));   // first screen row below the bathroom floor
+  if (sy0 < H) { drawFar(sy0, ox); drawMid(sy0, ox); }
+  drawNear(top, bot, ox, oy);
   drawBathroom(top, ox, oy);
+  const seen = world ? world.items.filter(it => it.y > top - 20 && it.y < bot + 20) : [];
   if (world) {
     const segs = world.segs.filter(s => s.y2 + 30 > top && s.y1 - 30 < bot);
     drawPipes(segs, ox, oy, T);
     if (world.exitY - 40 < bot) drawExitGlow(ox, oy);
-    for (const it of world.items) {
-      if (it.y < top - 20 || it.y > bot + 20) continue;
+    for (const it of seen) {
       if (it.type === 'sign') drawProp(g, IMG.sign, it.x + ox, it.y + 13 + oy);
       else if (it.type === 'tp' && !it.gone && !it.pushed) drawProp(g, IMG.tproll, it.x + ox, it.y + 9 + oy);
       else if (it.type === 'water') drawProp(g, IMG.splash, it.x + ox, it.y + 6 + oy + (Math.floor(T * 4 + it.y) % 2));
+      else if (it.type === 'duck' && !it.used) drawDuck(it, ox, oy, false);
+      else if (it.type === 'gate') drawGate(it, ox, oy);
+      else if (it.type === 'pump') drawPump(it, ox, oy);
     }
-    drawHints(ox, oy);
   }
   const nearTop = top < FLOOR_H + 40;
   if (nearTop) drawSprite(g, toilet.full, TOILET_X + ox, TOILET_Y + oy);
@@ -1616,7 +2354,19 @@ function renderTrip() {
       drawCentered(g, SPR.star, poo.x + Math.cos(a) * 11 + ox, poo.y - 19 + Math.sin(a) * 3 + oy);
     }
   }
+  drawFore(ox);
   for (const q of parts) R(g, q.c, q.x + ox, q.y + oy, q.w, q.h);
+  if (world && level.dark) {
+    drawDark(ox, oy);
+    // things that glow or shine stay visible in the dark: ducks, faint signs, the lights on gates and pumps
+    for (const it of seen) {
+      if (it.type === 'duck' && !it.used) drawDuck(it, ox, oy, true);
+      else if (it.type === 'sign') { g.globalAlpha = 0.35; drawProp(g, IMG.sign, it.x + ox, it.y + 13 + oy); g.globalAlpha = 1; }
+      else if (it.type === 'gate') gateLight(it, ox, oy);
+      else if (it.type === 'pump') R(g, Math.floor(T * 3) % 2 ? '#ffe14d' : '#ff8a1a', it.x + 12 + ox, it.y - 3 + oy, 2, 2);
+    }
+  }
+  if (world) drawHints(ox, oy);
   if (poo.state === 'exit') iris(poo.x + ox, poo.y + oy, Math.hypot(W, H) * (1 - trip.irisT / IRIS_TIME));
 }
 
@@ -1683,42 +2433,24 @@ function iris(cx, cy, r) {
 /* ======== UI ======== */
 const $ = id => document.getElementById(id);
 const ui = {
-  menu: $('menu'), cards: $('cards'), done: $('done'), doneTitle: $('doneTitle'), again: $('againBtn'),
+  menu: $('menu'), cards: $('cards'), done: $('done'), doneTitle: $('doneTitle'), doneDucks: $('doneDucks'),
+  again: $('againBtn'), next: $('nextBtn'), map: $('mapBtn'),
   hud: $('hud'), home: $('homeBtn'), fill: $('trackFill'), trackPoo: $('trackPoo'), goal: $('trackGoal'),
+  duckPill: $('duckPill'), duckN: $('duckN'),
   sounds: document.querySelectorAll('.sound'), left: $('leftBtn'), right: $('rightBtn'),
 };
 
+// One postcard per level, in order. Locked ones are greyed out with a padlock; finished ones get a tick and
+// show the most ducks caught there.
 function renderCards() {
   ui.cards.innerHTML = '';
-  const add = (d, inner) => {
+  LEVELS.forEach((L, i) => {
+    const d = destOf(L), open = unlocked(i);
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'card';
-    b.append(inner);
-    const label = document.createElement('span');
-    label.className = 'label';
-    label.textContent = d ? d.name : 'Surprise!';
-    b.append(label);
-    if (d && visited.includes(d.id)) {
-      const st = document.createElement('span');
-      st.className = 'stamp';
-      st.textContent = '✔';
-      st.setAttribute('aria-label', 'been there');
-      b.append(st);
-    }
-    b.addEventListener('click', () => {
-      Sound.unlock();
-      let pick = d;
-      if (!pick) {
-        const fresh = DESTS.filter(x => !visited.includes(x.id));
-        const pool = fresh.length ? fresh : DESTS;
-        pick = pool[Math.floor(Math.random() * pool.length)];
-      }
-      startTrip(pick);
-    });
-    ui.cards.append(b);
-  };
-  for (const d of DESTS) {
+    b.disabled = !open;
+    b.setAttribute('aria-label', open ? `${i + 1}: ${d.name}` : `${i + 1}: ${d.name}, locked`);
     const c = document.createElement('canvas');
     c.width = 120; c.height = 76;
     const cg = c.getContext('2d');
@@ -1726,20 +2458,47 @@ function renderCards() {
     d.bg(cg, 120, 76);
     d.fx(cg, 120, 76, 2);
     c.setAttribute('aria-hidden', 'true');
-    add(d, c);
-  }
-  const m = document.createElement('div');
-  m.className = 'mystery';
-  m.textContent = '?';
-  m.setAttribute('aria-hidden', 'true');
-  add(null, m);
+    b.append(c);
+    const num = document.createElement('span');
+    num.className = 'num';
+    num.textContent = i + 1;
+    num.setAttribute('aria-hidden', 'true');
+    b.append(num);
+    const label = document.createElement('span');
+    label.className = 'label';
+    label.textContent = d.name;
+    if (bestDucks[d.id]) {
+      const best = document.createElement('span');
+      best.className = 'best';
+      best.textContent = `🦆 ${bestDucks[d.id]}`;
+      label.append(best);
+    }
+    b.append(label);
+    if (!open) {
+      const lock = document.createElement('span');
+      lock.className = 'lock';
+      lock.textContent = '🔒';
+      lock.setAttribute('aria-hidden', 'true');
+      b.append(lock);
+    } else if (visited.includes(d.id)) {
+      const st = document.createElement('span');
+      st.className = 'stamp';
+      st.textContent = '✔';
+      st.setAttribute('aria-label', 'been there');
+      b.append(st);
+    }
+    b.addEventListener('click', () => { Sound.unlock(); if (open) startTrip(L); });
+    ui.cards.append(b);
+  });
 }
 
 function setSoundIcon() { ui.sounds.forEach(b => { b.textContent = Sound.isMuted() ? '🔇' : '🔊'; }); }
 
 ui.sounds.forEach(b => b.addEventListener('click', () => { Sound.unlock(); Sound.toggle(); setSoundIcon(); }));
 ui.home.addEventListener('click', () => { Sound.play('tap'); toMenu(); });
-ui.again.addEventListener('click', () => { Sound.play('tap'); toMenu(); });
+ui.again.addEventListener('click', () => { Sound.play('tap'); startTrip(level); });
+ui.next.addEventListener('click', () => { Sound.play('tap'); const n = LEVELS[LEVELS.indexOf(level) + 1]; n ? startTrip(n) : toMenu(); });
+ui.map.addEventListener('click', () => { Sound.play('tap'); toMenu(); });
 ui.left.addEventListener('pointerdown', e => { e.preventDefault(); Sound.unlock(); choose('L'); });
 ui.right.addEventListener('pointerdown', e => { e.preventDefault(); Sound.unlock(); choose('R'); });
 canvas.addEventListener('pointerdown', e => {
@@ -1767,6 +2526,7 @@ function resize() {
   g.imageSmoothingEnabled = false;
   if (mode === 'menu') cam.y = -(H - 24);
   if (mode === 'dest') layoutDest();
+  makeMotes();
 }
 addEventListener('resize', resize);
 
@@ -1781,6 +2541,7 @@ function frame(now) {
   else if (mode === 'dest') updateDest(dt);
   else cam.y = -(H - 24);
   updateParts(dt);
+  updateMotes(dt);
   if (mode === 'dest') renderDest(); else renderTrip();
 }
 
